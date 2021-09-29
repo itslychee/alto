@@ -14,17 +14,6 @@ const (
 	Separator
 )
 
-var tokens = map[rune]TokenType{
-	'{': LCurlyBrace,
-	'}': RCurlyBrace,
-	'|': Separator,
-	'(': LParen,
-	')': RParen,
-	'%': VarNotation,
-	// '<': LArrow,
-	// '>': RArrow,
-}
-
 type Token struct {
 	Type     TokenType
 	Value    string

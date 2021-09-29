@@ -20,28 +20,35 @@ func (lex *Lexer) ReadToken() (*Token, error) {
 		panic(err)
 	}
 	lex.position++
-	token := new(Token)
 
-	if t, ok := tokens[ch]; !ok {
-		switch ch {
-		case '\\':
-			ch, _, err = lex.reader.ReadRune()
-			if err != nil {
-				if err == io.EOF {
-					return nil, errors.New("unsatisfied escape sequence")
-				}
-				panic(err)
+	var token = &Token{Value: string(ch), Position: lex.position}
+
+	switch ch {
+	case '{':
+		token.Type = LCurlyBrace
+	case '}':
+		token.Type = RCurlyBrace
+	case '|':
+		token.Type = Separator
+	case '%':
+		token.Type = VarNotation
+	case '\\':
+		ch, _, err = lex.reader.ReadRune()
+		if err != nil {
+			if err == io.EOF {
+				return nil, errors.New("unsatisfied escape sequence")
 			}
-			lex.position++
-			fallthrough
-		default:
-			token.Type = StringLiteral
+			panic(err)
 		}
-	} else {
-		token.Type = t
+		lex.position++
+		fallthrough
+	default:
+		token.Value = string(ch)
+		token.Position = lex.position
+		token.Type = StringLiteral
+
 	}
-	token.Position = lex.position
-	token.Value = string(ch)
+
 	return token, nil
 }
 
