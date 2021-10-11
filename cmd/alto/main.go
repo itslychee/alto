@@ -135,7 +135,7 @@ func main() {
 	}
 
 	for index, fp := range directoryIndex {
-		log.Printf("[%d/%d] traversed on file %s", index+1, len(directoryIndex), filepath.ToSlash(fp))
+		log.Printf("[%d/%d] traversed on file %s\n", index+1, len(directoryIndex), filepath.ToSlash(fp))
 		sourceFile, err := os.Open(fp)
 		if err != nil {
 			log.Panicln("error while opening file:", fp, err)
