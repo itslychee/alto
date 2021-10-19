@@ -223,7 +223,7 @@ func main() {
 			if err := os.Rename(sourceFile.Name(), filename); err != nil {
 				log.Panicf("error while renaming file\n%s\nto %s", filepath.ToSlash(filename), err)
 			}
-			log.Printf("[%d/%d] file relocated to %s\n", index+1, len(directoryIndex), filename)
+			log.Printf("[%d/%d] file relocated to %s\n", index+1, len(directoryIndex), filepath.ToSlash(filename))
 
 		case "copy":
 			sourceFile.Seek(0, 0)
