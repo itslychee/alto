@@ -165,7 +165,6 @@ func main() {
 
 				"tracknumber": strconv.Itoa(trackNumber),
 				"tracktotal":  strconv.Itoa(trackTotal),
-
 				"discnumber": strconv.Itoa(discNumber),
 				"disctotal":  strconv.Itoa(discTotal),
 
