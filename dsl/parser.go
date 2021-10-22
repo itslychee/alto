@@ -83,7 +83,7 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		}
 		fallthrough
 
-	case LParen:
+	case LParen, RParen:
 		fallthrough
 		// Soon, but i want to ensure everything else works
 	case StringLiteral:
