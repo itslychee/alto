@@ -55,21 +55,21 @@ in [dhowden's tag metadata interface](https://pkg.go.dev/github.com/dhowden/tag#
 updated to the latest and stable release.
 
 
-* `title`
-* `artist`
-* `album`
-* `albumartist`
-* `genre`
-* `composer`
-* `year`
-* `tracknumber`
-* `tracktotal`
-* `discnumber`
-* `disctotal`
-* `comment`
-* `format`
-* `filetype`
-* `filename` _*this variable is not handled by `tag`, but it's just a variable of the name of the current file*_
+* `%title%`
+* `%artist%`
+* `%album%`
+* `%albumartist%`
+* `%genre%`
+* `%composer%`
+* `%year%`
+* `%tracknumber%`
+* `%tracktotal%`
+* `%discnumber%`
+* `%disctotal%`
+* `%comment%`
+* `%format%`
+* `%filetype%`
+* `%filename%` _*this variable is not handled by `tag`, but it's just a variable of the name of the current file*_
 
 The variable names should be self-explantory, you can refer the link above to get a
 grasp of what each variable does based on the name of it.
