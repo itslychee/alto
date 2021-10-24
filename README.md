@@ -37,6 +37,12 @@ You may be a bit confused about what the `-format` argument does, which is under
 section is dedicated to teach you on how you can use alto to its fullest to achieve the organization meant 
 for you.
 
+## What is a path construct?
+
+A path construct, as it implies, is a result of alto's processing of the `-format` string with the
+current file's metadata being used as reference. So when this manual brings up stuff like "omitting from the path
+construct" it simply means that *X* value won't be in the final result.
+
 ## Variables
 
 As you may have guessed, `%filename%` is a variable. Proper variables must have ASCII-only identifiers wrapped around with
@@ -63,10 +69,19 @@ updated to the latest and stable release.
 * `comment`
 * `format`
 * `filetype`
+* `filename` _*this variable is not handled by `tag`, but it's just a variable of the name of the current file*_
 
-The variable names should be self-explantory, you can refer to [this](https://pkg.go.dev/github.com/dhowden/tag#Metadata) to get a
+The variable names should be self-explantory, you can refer the link above to get a
 grasp of what each variable does based on the name of it.
 
 ## Groups
 
-*soon:tm:*
+Groups are a collection of fields which are separated by `|`, and enwrapped by `{` and `}`. A group's job is to start on
+the first field and see if it has a value, if it does not it will keep iterating over the list of fields until it finds a non-nil
+field. If it does not find a viable field, it will simply just be omitted from the path construct
+
+### Field
+
+A field is a collection of string literals and variables. Unlike the outside of a group where only string literals and groups are parsed, 
+variables are also parsed. So `%variable% foobar` in a field would be represented `Variable StringLiteral` in a field, but outside one it
+would be `StringLiteral`.
