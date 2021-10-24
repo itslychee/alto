@@ -150,6 +150,7 @@ func main() {
 				log.Panicln("error while identifying metadata:", err)
 			}
 		}
+
 		var scope = dsl.Scope{Variables: make(map[string]string)}
 		if metadata != nil {
 			trackNumber, trackTotal := metadata.Track()
@@ -165,14 +166,15 @@ func main() {
 
 				"tracknumber": strconv.Itoa(trackNumber),
 				"tracktotal":  strconv.Itoa(trackTotal),
-				"discnumber": strconv.Itoa(discNumber),
-				"disctotal":  strconv.Itoa(discTotal),
+				"discnumber":  strconv.Itoa(discNumber),
+				"disctotal":   strconv.Itoa(discTotal),
 
 				"comment":  reservedKeywords.ReplaceAllString(metadata.Comment(), "-"),
 				"format":   string(metadata.Format()),
 				"filetype": string(metadata.FileType()),
 			}
 		}
+		scope.Variables["filename"] = filepath.Base(fp)
 
 		// Execute AST nodes
 		var output strings.Builder
