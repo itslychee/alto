@@ -82,6 +82,6 @@ field. If it does not find a viable field, it will simply just be omitted from t
 
 ### Field
 
-A field is a collection of string literals and variables. Unlike the outside of a group where only string literals and groups are parsed, 
-variables are also parsed. So `%variable% foobar` in a field would be represented `Variable StringLiteral` in a field, but outside one it
-would be `StringLiteral`.
+A field is a collection of string literals and variables. Unlike the outside of a group where only string
+literals and groups are parsed, variables are also parsed. So `%variable% foobar` in a field would 
+be represented `Variable StringLiteral` in a field, but outside one it would be `StringLiteral`.
