@@ -43,6 +43,29 @@ A path construct, as it implies, is a result of alto's processing of the `-forma
 current file's metadata being used as reference. So when this manual brings up stuff like "omitting from the path
 construct" it simply means that *X* value won't be in the final result.
 
+## Examples
+
+```bash
+$ alto -format "{%artist%|unknown artist}/{%album%/}{%title%|%filename%}" -source source -destination destination
+
+# Possible outcomes
+Artist/Album/Title.flac # alto automatically appends the file extension if it isn't present in the path construct
+Artist/Album/Filename.flac
+Artist/Title.flac
+Artist/Filename.flac
+unknown artist/Album/Title.flac
+unknown artist/Album/Filename.flac
+unknown artist/Title.flac
+unknown artist/Filename.flac
+
+# Alto does the following 
+
+# it checks if %artist% exists, if it doesn't then it'll return unknown artist
+# Adds "/" after the first group (which is the contents wrapped with the curly braces)
+# Returns %album%/ IF the variable %album% is not empty/nonexistent, otherwise it will return nothing
+# Returns %title% IF the variable is not empty/nonexsitent, otherwise it will return %filename%, which will always contains a value
+```
+
 ## Variables
 
 As you may have guessed, `%filename%` is a variable. Proper variables must have ASCII-only identifiers wrapped around with
@@ -85,3 +108,8 @@ field. If it does not find a viable field, it will simply just be omitted from t
 A field is a collection of string literals and variables. Unlike the outside of a group where only string
 literals and groups are parsed, variables are also parsed. So `%variable% foobar` in a field would 
 be represented `Variable StringLiteral` in a field, but outside one it would be `StringLiteral`.
+
+### Separators
+
+Separators are similar to logical ORs, which if either value is true, then return true, otherwise return false. Instead of returning a boolean, alto
+returns the evaluated field.
