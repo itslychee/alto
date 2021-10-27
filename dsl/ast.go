@@ -1,25 +1,11 @@
 package dsl
 
 import (
-	"fmt"
 	"strings"
 )
 
 type ASTNode interface {
 	Execute(scope Scope) (string, error)
-}
-
-type ASTFunction struct {
-	Name      string
-	Arguments []ASTField
-}
-
-func (ast ASTFunction) Execute(scope Scope) (string, error) {
-	if v, ok := scope.Functions[ast.Name]; !ok {
-		return "", fmt.Errorf("function with the name of '%s' does not exist", ast.Name)
-	} else {
-		return v(ast.Arguments, &scope)
-	}
 }
 
 type ASTField struct {
