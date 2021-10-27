@@ -82,10 +82,6 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 			return ASTVariable{name: p.prevToken.Value}, nil
 		}
 		fallthrough
-
-	case LParen, RParen:
-		fallthrough
-		// Soon, but i want to ensure everything else works
 	case StringLiteral:
 		return ASTString{Value: p.currentToken.Value}, nil
 

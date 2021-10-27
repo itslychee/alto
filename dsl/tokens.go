@@ -5,8 +5,6 @@ type TokenType int
 const (
 	VarNotation = iota + 1
 	StringLiteral
-	LParen
-	RParen
 	LCurlyBrace
 	RCurlyBrace
 	LArrow

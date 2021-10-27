@@ -1,7 +1,6 @@
 package dsl
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 )
@@ -41,28 +40,6 @@ func (ast ASTField) Execute(scope Scope) (string, error) {
 		}
 	}
 	return builder.String(), nil
-}
-
-type ASTFunctionGroup struct {
-	Fields        []ASTField
-	stopExecution bool
-}
-
-func (ast ASTFunctionGroup) Execute(scope Scope) (s string, err error) {
-	if ast.stopExecution {
-		err = errors.New("none of the fields returned a viable response")
-	}
-	for _, val := range ast.Fields {
-		if s, err = val.Execute(scope); err != nil {
-			if ast.stopExecution {
-				return
-			}
-			continue
-		} else if len(s) != 0 {
-			return s, nil
-		}
-	}
-	return
 }
 
 type ASTGroup struct {
