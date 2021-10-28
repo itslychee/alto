@@ -1,17 +1,13 @@
 # alto, a music organizer
 
-alto is a program built for audio management. It's purpose is to provide the user the means to write a 
-path construct, or format, to copy/rename audio to a custom path.
+alto is a program built for audio management. It's purpose is to provide the user the means to create
+a path construct to move individual audio files to a select path while being provided with the metadata of the file
+through [variables](#variables).
 
-For Example:
-
-```bash
-$ alto -format "{%filename%}" -source path/to/source -destination path/to/destination -operation rename
-```
-
-Would move all files under `path/to/source` to `path/to/destination` with their original filename, name collisions
-are automatically handled, but I intend to make this behavior customizable, as people may have different interpretations
-of this behavior.
+<video width="auto" height="auto" controls> 
+    <source src=".github/assets/showcase.mp4" type="video/mp4">
+    no video support for this browser
+</video>
 
 # Installing
 
@@ -41,7 +37,7 @@ for you.
 
 A path construct, as it implies, is a result of alto's processing of the `-format` string with the
 current file's metadata being used as reference. So when this manual brings up stuff like "omitting from the path
-construct" it simply means that *X* value won't be in the final result.
+construct" it simply means that *X* value won't be in the final result. 
 
 ## Examples
 
