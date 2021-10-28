@@ -4,10 +4,7 @@ alto is a program built for audio management. It's purpose is to provide the use
 a path construct to move individual audio files to a select path while being provided with the metadata of the file
 through [variables](#variables).
 
-<video width="auto" height="auto" controls> 
-    <source src=".github/assets/showcase.mp4" type="video/mp4">
-    no video support for this browser
-</video>
+![APNG showcasing alto](.github/assets/showcase.png)
 
 # Installing
 
