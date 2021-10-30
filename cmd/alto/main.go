@@ -243,7 +243,7 @@ func main() {
 
 			sourceFile.Close()
 			destFile.Close()
-			log.Printf("[%d/%d] copied file to %s\n", index+1, len(directoryIndex), filename)
+			log.Printf("[%d/%d] copied file to %s\n", index+1, len(directoryIndex), filepath.ToSlash(filename))
 			time.Sleep(50 * time.Millisecond)
 		}
 
