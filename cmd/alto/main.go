@@ -156,12 +156,12 @@ func main() {
 			trackNumber, trackTotal := metadata.Track()
 			discNumber, discTotal := metadata.Disc()
 			scope.Variables = map[string]string{
-				"title":       reservedKeywords.ReplaceAllString(metadata.Title(), "-"),
-				"artist":      reservedKeywords.ReplaceAllString(metadata.Artist(), "-"),
-				"album":       reservedKeywords.ReplaceAllString(metadata.Album(), "-"),
-				"albumartist": reservedKeywords.ReplaceAllString(metadata.AlbumArtist(), "-"),
-				"genre":       reservedKeywords.ReplaceAllString(metadata.Genre(), "-"),
-				"composer":    reservedKeywords.ReplaceAllString(metadata.Composer(), "-"),
+				"title":       strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Title(), "-")),
+				"artist":      strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Artist(), "-")),
+				"album":       strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Album(), "-")),
+				"albumartist": strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.AlbumArtist(), "-")),
+				"genre":       strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Genre(), "-")),
+				"composer":    strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Composer(), "-")),
 				"year":        strconv.Itoa(metadata.Year()),
 
 				"tracknumber": strconv.Itoa(trackNumber),
@@ -169,9 +169,9 @@ func main() {
 				"discnumber":  strconv.Itoa(discNumber),
 				"disctotal":   strconv.Itoa(discTotal),
 
-				"comment":  reservedKeywords.ReplaceAllString(metadata.Comment(), "-"),
-				"format":   string(metadata.Format()),
-				"filetype": string(metadata.FileType()),
+				"comment":  strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Comment(), "-")),
+				"format":   strings.TrimSpace(string(metadata.Format())),
+				"filetype": strings.ToLower(string(metadata.FileType())),
 			}
 		}
 		scope.Variables["filename"] = filepath.Base(fp)
@@ -191,18 +191,16 @@ func main() {
 			continue
 		}
 
-		filename, err := filepath.Abs(output.String())
+		filename, err := filepath.Abs(filepath.Clean(output.String()))
 		if err != nil {
 			log.Panicln("could not get an absolute representation of path")
 		}
-
 		var extension = filepath.Ext(sourceFile.Name())
 		if !strings.HasSuffix(strings.ToLower(filename), extension) {
 			filename = strings.Join([]string{filename, extension}, "")
 		}
 
 		// Check for path collisions
-
 		var tempFilename = filename
 		for counter := 0; ; counter++ {
 			_, err := os.Stat(tempFilename)
