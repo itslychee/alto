@@ -60,3 +60,8 @@ type ASTVariable struct {
 func (ast ASTVariable) Execute(scope Scope) (string, error) {
 	return scope.Variables[ast.name], nil
 }
+
+type ASTFunction interface {
+	Execute(args []ASTNode, scope *Scope) (string, error)
+	MaxParams() int
+}

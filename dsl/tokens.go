@@ -10,6 +10,8 @@ const (
 	LArrow
 	RArrow
 	Separator
+	LParen
+	RParen
 )
 
 type Token struct {

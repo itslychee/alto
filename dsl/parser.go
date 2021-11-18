@@ -13,22 +13,19 @@ var (
 
 var IdentifierExpr = regexp.MustCompile(`\w+`)
 
-type FunctionDecl func(args []ASTField, scope *Scope) (string, error)
-
 type Scope struct {
 	Variables map[string]string
-	Functions map[string]FunctionDecl
 	Parser    *Parser
 }
 
 type Parser struct {
-	toks          []*Token
-	position      int
-	currentToken  *Token
-	nextToken     *Token
-	prevToken     *Token
-	arrowDepth    int
-	groupDepth    int
+	toks         []*Token
+	position     int
+	currentToken *Token
+	nextToken    *Token
+	prevToken    *Token
+	arrowDepth   int
+	groupDepth   int
 }
 
 func (p *Parser) UpdateCursor() error {
@@ -84,7 +81,6 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		fallthrough
 	case StringLiteral:
 		return ASTString{Value: p.currentToken.Value}, nil
-
 	case LCurlyBrace:
 		p.groupDepth++
 		var group ASTGroup
@@ -115,7 +111,6 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 			}
 			field.Nodes = append(field.Nodes, n)
 		}
-
 	default:
 		return nil, ErrNoMoreTokens
 	}
