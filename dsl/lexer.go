@@ -32,6 +32,10 @@ func (lex *Lexer) ReadToken() (*Token, error) {
 		token.Type = Separator
 	case '%':
 		token.Type = VarNotation
+	case '<':
+		token.Type = LArrow
+	case '>':
+		token.Type = RArrow
 	case '\\':
 		ch, _, err = lex.reader.ReadRune()
 		if err != nil {
