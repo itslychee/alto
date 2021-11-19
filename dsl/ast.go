@@ -62,6 +62,6 @@ func (ast ASTVariable) Execute(scope Scope) (string, error) {
 }
 
 type ASTFunction interface {
-	Execute(args []ASTNode, scope *Scope) (string, error)
+	Execute(args []ASTField, scope *Scope) (string, error)
 	MaxParams() int
 }
