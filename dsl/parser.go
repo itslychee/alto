@@ -15,6 +15,7 @@ var IdentifierExpr = regexp.MustCompile(`\w+`)
 
 type Scope struct {
 	Variables map[string]string
+	Functions map[string]ASTFunction
 	Parser    *Parser
 }
 
@@ -76,9 +77,39 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 
 			p.UpdateCursor()
 
-			return ASTVariable{name: p.prevToken.Value}, nil
+			return ASTVariable{Name: p.prevToken.Value}, nil
 		}
 		fallthrough
+	case LArrow:
+		p.groupDepth++
+		var group ASTFunctionWrapper
+		var field ASTField
+
+		for {
+			switch p.nextToken.Type {
+			case RArrow:
+				p.groupDepth--
+				p.UpdateCursor()
+				group.Args = append(group.Args, field)
+				// return group, nil
+
+			case Separator:
+				p.UpdateCursor()
+				group.Args = append(group.Args, field)
+				continue
+			}
+
+			n, err := p.ParseNode()
+			if err != nil {
+				if err == ErrNoMoreTokens {
+					return nil, fmt.Errorf("unterminated group")
+
+				}
+				return nil, err
+			}
+			field.Nodes = append(field.Nodes, n)
+		}
+
 	case StringLiteral:
 		return ASTString{Value: p.currentToken.Value}, nil
 	case LCurlyBrace:

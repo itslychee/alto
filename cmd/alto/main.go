@@ -1,8 +1,10 @@
 package main
 
 import (
-	"os"
+	"fmt"
 	logging "log"
+	"os"
+	"strings"
 
 	"github.com/ItsLychee/alto/dsl"
 	"github.com/dhowden/tag"
@@ -21,6 +23,26 @@ var SupportedFormats = []tag.FileType{
 }
 
 func main() {
-	
+	nodes, err := ParseFormatString("/one/two/three/four<must(onetwo|three|four)>")
+	if err != nil {
+		panic(err)
+	}
+
+	var scope = dsl.Scope{
+		Variables: map[string]string{
+			"helloworld": "yo",
+		},
+		Functions: dsl.DefaultFunctions,
+	}
+
+	var builder strings.Builder
+	for _, v := range nodes {
+		s, err := v.Execute(scope)
+		if err != nil {
+			panic(err)
+		}
+		builder.WriteString(s)
+	}
+	fmt.Println(builder.String())
 
 }

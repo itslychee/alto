@@ -1,6 +1,7 @@
 package dsl
 
 import (
+	"fmt"
 	"strings"
 )
 
@@ -54,11 +55,24 @@ func (ast ASTString) Execute(_ Scope) (string, error) {
 }
 
 type ASTVariable struct {
-	name string
+	Name string
 }
 
 func (ast ASTVariable) Execute(scope Scope) (string, error) {
-	return scope.Variables[ast.name], nil
+	return scope.Variables[ast.Name], nil
+}
+
+type ASTFunctionWrapper struct {
+	Name     string
+	Function ASTFunction
+	Args     []ASTField
+}
+
+func (ast ASTFunctionWrapper) Execute(scope *Scope) (string, error) {
+	if len(ast.Args) != -1 && len(ast.Args) != ast.Function.MaxParams() {
+		return "", fmt.Errorf("too many arguments passed to function '%s'", ast.Name)
+	}
+	return ast.Function.Execute(ast.Args, scope)
 }
 
 type ASTFunction interface {
