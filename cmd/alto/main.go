@@ -23,15 +23,13 @@ var SupportedFormats = []tag.FileType{
 }
 
 func main() {
-	nodes, err := ParseFormatString("/one/two/three/four{hello world|<exit()>}")
+	nodes, err := ParseFormatString("/one/two/three/four{%helloworld%|<exit()>}")
 	if err != nil {
 		panic(err)
 	}
 
 	var scope = &dsl.Scope{
-		Variables: map[string]string{
-			"helloworld": "yo",
-		},
+		Variables: map[string]string{},
 		Functions: dsl.DefaultFunctions,
 	}
 

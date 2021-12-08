@@ -63,7 +63,10 @@ func (ast ASTVariable) Execute(scope *Scope) (string, error) {
 }
 
 // Due to the nature of the DSL requiring you to pass a Scope,
-// which houses
+// which houses both functions and variales. We must use a "wrapper"
+// that will provide the AST interface for functions.
+// The disadvantage of this is that invalid function names or too many/little params
+// cannot be detected at AST compile time.
 type ASTFunctionWrapper struct {
 	Name string
 	Args []ASTField

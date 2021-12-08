@@ -130,7 +130,6 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		var field ASTField
 
 		for {
-			fmt.Printf("%+v\n", p.CurrentToken)
 			switch p.NextToken.Type {
 			case RCurlyBrace:
 				p.groupDepth--
