@@ -23,7 +23,7 @@ var SupportedFormats = []tag.FileType{
 }
 
 func main() {
-	nodes, err := ParseFormatString("/one/two/three/four<exit(>")
+	nodes, err := ParseFormatString("/one/two/three/four{hello world|<exit()>}")
 	if err != nil {
 		panic(err)
 	}

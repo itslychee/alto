@@ -94,8 +94,6 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 			return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
 		}
 
-		// <name()>
-
 		var field ASTField
 		for {
 			switch p.NextToken.Type {
@@ -103,7 +101,10 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 				if len(field.Nodes) > 0 {
 					wrapper.Args = append(wrapper.Args, field)
 				}
-				if err := p.UpdateCursor(); err != nil || p.NextToken.Type != RArrow {
+				if err := p.UpdateCursor(); err != nil {
+					return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
+				}
+				if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != RArrow {
 					return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
 				}
 				return wrapper, nil
@@ -112,21 +113,14 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 				field = ASTField{}
 			case RArrow:
 				return nil, fmt.Errorf("unterminated function at pos %d", p.NextToken.Position)
-			default:
-				n, err := p.ParseNode()
-				if err != nil {
-					return nil, err
-				}
-				field.Nodes = append(field.Nodes, n)
 			}
-			if err := p.UpdateCursor(); err != nil {
+			n, err := p.ParseNode()
+			if err != nil {
 				return nil, err
 			}
+			field.Nodes = append(field.Nodes, n)
+
 		}
-
-
-
-
 
 	case StringLiteral, LParen, RParen:
 		return ASTString{Value: p.CurrentToken.Value}, nil
@@ -136,6 +130,7 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		var field ASTField
 
 		for {
+			fmt.Printf("%+v\n", p.CurrentToken)
 			switch p.NextToken.Type {
 			case RCurlyBrace:
 				p.groupDepth--
