@@ -22,32 +22,32 @@ type Scope struct {
 type Parser struct {
 	toks         []*Token
 	position     int
-	currentToken *Token
-	nextToken    *Token
-	prevToken    *Token
+	CurrentToken *Token
+	NextToken    *Token
+	PrevToken    *Token
 	arrowDepth   int
 	groupDepth   int
 }
 
 func (p *Parser) UpdateCursor() error {
-	p.prevToken = new(Token)
-	p.nextToken = new(Token)
+	p.PrevToken = new(Token)
+	p.NextToken = new(Token)
 
 	// set prevToken, if feasible
 	if p.position > 0 && len(p.toks) > 0 {
-		p.prevToken = p.toks[p.position-1]
+		p.PrevToken = p.toks[p.position-1]
 	}
 
 	// set currentToken, if feasible
 	if len(p.toks)-1 >= p.position {
-		p.currentToken = p.toks[p.position]
+		p.CurrentToken = p.toks[p.position]
 	} else {
 		return ErrNoMoreTokens
 	}
 
 	// set nextToken, if feasible
 	if len(p.toks) != p.position+1 {
-		p.nextToken = p.toks[p.position+1]
+		p.NextToken = p.toks[p.position+1]
 	}
 
 	p.position++
@@ -60,65 +60,83 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		return nil, err
 	}
 
-	switch p.currentToken.Type {
+	switch p.CurrentToken.Type {
 	case VarNotation:
 		if p.arrowDepth > 0 || p.groupDepth > 0 {
 			err := p.UpdateCursor()
 			if err != nil {
-				return nil, fmt.Errorf("unterminated variable at pos %d", p.prevToken.Position)
+				return nil, fmt.Errorf("unterminated variable at pos %d", p.PrevToken.Position)
 			}
-			if p.nextToken.Type != VarNotation {
-				return nil, fmt.Errorf("unterminated variable at pos %d", p.currentToken.Position)
+			if p.NextToken.Type != VarNotation {
+				return nil, fmt.Errorf("unterminated variable at pos %d", p.CurrentToken.Position)
 			}
 
-			if !IdentifierExpr.Match([]byte(p.currentToken.Value)) {
-				return nil, fmt.Errorf("invalid variable name at pos %d", p.prevToken.Position)
+			if !IdentifierExpr.Match([]byte(p.CurrentToken.Value)) {
+				return nil, fmt.Errorf("invalid variable name at pos %d", p.PrevToken.Position)
 			}
 
 			p.UpdateCursor()
 
-			return ASTVariable{Name: p.prevToken.Value}, nil
+			return ASTVariable{Name: p.PrevToken.Value}, nil
 		}
 		fallthrough
 	case LArrow:
-		p.groupDepth++
-		var group ASTFunctionWrapper
-		var field ASTField
-
-		for {
-			switch p.nextToken.Type {
-			case RArrow:
-				p.groupDepth--
-				p.UpdateCursor()
-				group.Args = append(group.Args, field)
-				// return group, nil
-
-			case Separator:
-				p.UpdateCursor()
-				group.Args = append(group.Args, field)
-				continue
-			}
-
-			n, err := p.ParseNode()
-			if err != nil {
-				if err == ErrNoMoreTokens {
-					return nil, fmt.Errorf("unterminated group")
-
-				}
-				return nil, err
-			}
-			field.Nodes = append(field.Nodes, n)
+		p.arrowDepth++
+		var wrapper ASTFunctionWrapper
+		if err := p.UpdateCursor(); err != nil {
+			return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
+		}
+		if p.CurrentToken.Type != StringLiteral {
+			return nil, fmt.Errorf("invalid type after function group")
+		}
+		wrapper.Name = p.CurrentToken.Value
+		if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != LParen {
+			return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
 		}
 
-	case StringLiteral:
-		return ASTString{Value: p.currentToken.Value}, nil
+		// <name()>
+
+		var field ASTField
+		for {
+			switch p.NextToken.Type {
+			case RParen:
+				if len(field.Nodes) > 0 {
+					wrapper.Args = append(wrapper.Args, field)
+				}
+				if err := p.UpdateCursor(); err != nil || p.NextToken.Type != RArrow {
+					return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
+				}
+				return wrapper, nil
+			case Separator:
+				wrapper.Args = append(wrapper.Args, field)
+				field = ASTField{}
+			case RArrow:
+				return nil, fmt.Errorf("unterminated function at pos %d", p.NextToken.Position)
+			default:
+				n, err := p.ParseNode()
+				if err != nil {
+					return nil, err
+				}
+				field.Nodes = append(field.Nodes, n)
+			}
+			if err := p.UpdateCursor(); err != nil {
+				return nil, err
+			}
+		}
+
+
+
+
+
+	case StringLiteral, LParen, RParen:
+		return ASTString{Value: p.CurrentToken.Value}, nil
 	case LCurlyBrace:
 		p.groupDepth++
 		var group ASTGroup
 		var field ASTField
 
 		for {
-			switch p.nextToken.Type {
+			switch p.NextToken.Type {
 			case RCurlyBrace:
 				p.groupDepth--
 				p.UpdateCursor()

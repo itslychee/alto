@@ -6,14 +6,14 @@ import (
 )
 
 type ASTNode interface {
-	Execute(scope Scope) (string, error)
+	Execute(*Scope) (string, error)
 }
 
 type ASTField struct {
 	Nodes []ASTNode
 }
 
-func (ast ASTField) Execute(scope Scope) (string, error) {
+func (ast ASTField) Execute(scope *Scope) (string, error) {
 	var builder strings.Builder
 	for _, val := range ast.Nodes {
 		s, err := val.Execute(scope)
@@ -33,7 +33,7 @@ type ASTGroup struct {
 	Fields []ASTField
 }
 
-func (ast ASTGroup) Execute(scope Scope) (string, error) {
+func (ast ASTGroup) Execute(scope *Scope) (string, error) {
 	for _, val := range ast.Fields {
 		s, err := val.Execute(scope)
 		if err != nil {
@@ -50,7 +50,7 @@ type ASTString struct {
 	Value string
 }
 
-func (ast ASTString) Execute(_ Scope) (string, error) {
+func (ast ASTString) Execute(_ *Scope) (string, error) {
 	return ast.Value, nil
 }
 
@@ -58,21 +58,26 @@ type ASTVariable struct {
 	Name string
 }
 
-func (ast ASTVariable) Execute(scope Scope) (string, error) {
+func (ast ASTVariable) Execute(scope *Scope) (string, error) {
 	return scope.Variables[ast.Name], nil
 }
 
+// Due to the nature of the DSL requiring you to pass a Scope,
+// which houses
 type ASTFunctionWrapper struct {
-	Name     string
-	Function ASTFunction
-	Args     []ASTField
+	Name string
+	Args []ASTField
 }
 
 func (ast ASTFunctionWrapper) Execute(scope *Scope) (string, error) {
-	if len(ast.Args) != -1 && len(ast.Args) != ast.Function.MaxParams() {
+	v, ok := scope.Functions[ast.Name]
+	if !ok {
+		return "", fmt.Errorf("function \"%s\" does not exist", ast.Name)
+	}
+	if v.MaxParams() != -1 && len(ast.Args) != v.MaxParams() {
 		return "", fmt.Errorf("too many arguments passed to function '%s'", ast.Name)
 	}
-	return ast.Function.Execute(ast.Args, scope)
+	return v.Execute(ast.Args, scope)
 }
 
 type ASTFunction interface {

@@ -36,6 +36,10 @@ func (lex *Lexer) ReadToken() (*Token, error) {
 		token.Type = LArrow
 	case '>':
 		token.Type = RArrow
+	case '(':
+		token.Type = LParen
+	case ')': 
+		token.Type = RParen
 	case '\\':
 		ch, _, err = lex.reader.ReadRune()
 		if err != nil {

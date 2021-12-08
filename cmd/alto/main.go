@@ -23,17 +23,18 @@ var SupportedFormats = []tag.FileType{
 }
 
 func main() {
-	nodes, err := ParseFormatString("/one/two/three/four<must(onetwo|three|four)>")
+	nodes, err := ParseFormatString("/one/two/three/four<exit(>")
 	if err != nil {
 		panic(err)
 	}
 
-	var scope = dsl.Scope{
+	var scope = &dsl.Scope{
 		Variables: map[string]string{
 			"helloworld": "yo",
 		},
 		Functions: dsl.DefaultFunctions,
 	}
+
 
 	var builder strings.Builder
 	for _, v := range nodes {

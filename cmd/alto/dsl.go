@@ -6,6 +6,7 @@ import (
 
 func ParseFormatString(s string) ([]dsl.ASTNode, error) {
 	toks, err := dsl.NewLexer(s).Lex()
+
 	if err != nil {
 		return nil, err
 	}
