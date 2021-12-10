@@ -3,10 +3,17 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
+	"io/fs"
+	"log"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 
+	"github.com/ItsLychee/alto/dsl"
 	"github.com/dhowden/tag"
+	"github.com/pkg/errors"
 )
 
 var SupportedFormats = []tag.FileType{
@@ -21,35 +28,100 @@ var SupportedFormats = []tag.FileType{
 }
 
 type Config struct {
-	Path string `json:"path"`
+	Path        string `json:"path"`
+	Destination string `json:"destination"`
+	Source      string `json:"source"`
 }
 
 func main() {
 	var config Config
-	var configPath Filepath
-	var destination string
-	var source string
+	base, _ := os.UserConfigDir()
+	buf, _ := os.ReadFile(filepath.Join(base, "alto", "config.json"))
+	json.Unmarshal(buf, &config)
 
-	flag.Var(configPath, "config", "custom path to configuration file")
-	flag.StringVar(&config.Path, "path", "", "how alto should rename your files")
-	flag.StringVar(&source, "source", ".", "where should alto index and read from")
-	flag.StringVar(&destination, "destination", ".", "where should alto write to")
+	flag.Func("config", "custom path to configuration file", func(s string) error {
+		buf, err := os.ReadFile(s)
+		if err != nil {
+			return err
+		}
+		config = Config{}
+		return json.Unmarshal(buf, &config)
+	})
+	flag.StringVar(&config.Path, "path", "", "formatting syntax alto should use for files")
+	flag.StringVar(&config.Source, "source", ".", "where alto should read and index from")
+	flag.StringVar(&config.Destination, "destination", "", "where alto should write to")
 	flag.Parse()
 
-	// Configuration loading
-	if configPath.String() == "" {
-		confdir, _ := os.UserConfigDir()
-		defaultConfigFile := filepath.Join(confdir, "alto", "config.json")
-		buf, _ := os.ReadFile(defaultConfigFile)
-		json.Unmarshal(buf, &config)
-	} else {
-		buf, err := os.ReadFile(configPath.String())
+	if config.Destination == "" || config.Path == "" {
+		log.Panicln("path and/or destination must not be nil")
+	}
+
+	var sourceIndex []string
+	err := filepath.WalkDir(config.Source, func(path string, d fs.DirEntry, err error) error {
+		if d.IsDir() {
+			return err
+		}
+		for _, ext := range SupportedFormats {
+			if strings.HasSuffix(strings.ToLower(path), strings.ToLower(string(ext))) {
+				log.Printf("[%d] indexed: %s", len(sourceIndex)+1, path)
+				sourceIndex = append(sourceIndex, path)
+				return nil
+			}
+		}
+		return err
+	})
+	if err != nil {
+		log.Panicln(err)
+	}
+	scope, nodes, err := ParseFormatString(config.Path)
+	if err != nil {
+		log.Panicln(errors.Wrap(err, "could not compile nodes for provided path"))
+	}
+
+	for index, path := range sourceIndex {
+		prelimInfo := fmt.Sprintf("[%d/%d]", index+1, len(sourceIndex))
+		log.Println(prelimInfo, "opening", path)
+		f, err := os.Open(path)
 		if err != nil {
-			panic(err)
+			log.Panicln(errors.Wrap(err, fmt.Sprintf("error while opening %s", path)))
 		}
-		if err := json.Unmarshal(buf, &config); err != nil {
-			panic(err)
+		metadata, err := tag.ReadFrom(f)
+		if err != nil {
+			log.Panic(errors.Wrap(err, prelimInfo+" could not retrieve metadata"))
 		}
+
+		discCurrent, discTotal := metadata.Disc()
+		trackCurrent, trackTotal := metadata.Track()
+
+		scope.Variables = map[string]string{
+			"trackcurrent": strconv.Itoa(trackCurrent),
+			"tracktotal":   strconv.Itoa(trackTotal),
+			"disccurrent":  strconv.Itoa(discCurrent),
+			"disctotal":    strconv.Itoa(discTotal),
+			"year":         strconv.Itoa(metadata.Year()),
+			"comment":      metadata.Comment(),
+			"format":       string(metadata.Format()),
+			"composer":     metadata.Composer(),
+			"genre":        metadata.Genre(),
+			"albumartist":  metadata.AlbumArtist(),
+			"album":        metadata.Album(),
+			"artist":       metadata.Artist(),
+			"title":        metadata.Title(),
+			"filetype":     strings.ToLower(string(metadata.FileType())),
+			"filename":     filepath.Base(path),
+		}
+		scope.Functions = dsl.DefaultFunctions
+
+		var builder strings.Builder
+		for _, v := range nodes {
+			s, err := v.Execute(scope)
+			if err != nil {
+				panic(err)
+			}
+			builder.WriteString(clean(s))
+		}
+
+		
 	}
 
 }

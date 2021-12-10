@@ -4,11 +4,12 @@ import (
 	"github.com/ItsLychee/alto/dsl"
 )
 
-func ParseFormatString(s string) ([]dsl.ASTNode, error) {
+func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
 	toks, err := dsl.NewLexer(s).Lex()
-
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return dsl.NewParser(toks).Parse()
+	parser := dsl.NewParser(toks)
+	nodes, err := parser.Parse()
+	return &dsl.Scope{Parser: parser}, nodes, err
 }
