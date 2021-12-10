@@ -34,11 +34,24 @@ type Config struct {
 	Source      string `json:"source"`
 }
 
+func filepathFunc(dst *string) func(s string) error {
+	return func(s string) error {
+		if v, err := filepath.Abs(filepath.Clean(s)); err != nil {
+			return err
+		} else {
+			*dst = v
+		}
+		return nil
+	}
+
+}
+
 func main() {
 	var config Config
 	base, _ := os.UserConfigDir()
 	buf, _ := os.ReadFile(filepath.Join(base, "alto", "config.json"))
 	json.Unmarshal(buf, &config)
+	fmt.Println(config)
 
 	flag.Func("config", "custom path to configuration file", func(s string) error {
 		buf, err := os.ReadFile(s)
@@ -48,9 +61,12 @@ func main() {
 		config = Config{}
 		return json.Unmarshal(buf, &config)
 	})
-	flag.StringVar(&config.Path, "path", "", "formatting syntax alto should use for files")
-	flag.StringVar(&config.Source, "source", ".", "where alto should read and index from")
-	flag.StringVar(&config.Destination, "destination", "", "where alto should write to")
+	flag.Func("path", "formatting syntax alto should use for files", func(s string) error {
+		config.Path = s
+		return nil
+	})
+	flag.Func("source", "where alto should read and index from", filepathFunc(&config.Source))
+	flag.Func("destination", "where alto should write to", filepathFunc(&config.Destination))
 	flag.Parse()
 
 	if config.Destination == "" || config.Path == "" {
@@ -110,10 +126,10 @@ func main() {
 			"title":        metadata.Title(),
 			"filetype":     strings.ToLower(string(metadata.FileType())),
 			"filename":     filepath.Base(path),
-			"_index":		strconv.Itoa(index),
+			"_index":       strconv.Itoa(index),
 		}
 		scope.Functions = dsl.DefaultFunctions
-		for k,v := range AltoFunctions {
+		for k, v := range AltoFunctions {
 			scope.Functions[k] = v
 		}
 

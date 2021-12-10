@@ -1,34 +1,9 @@
 package main
 
 import (
-	"errors"
-	"path/filepath"
 	"regexp"
 	"runtime"
 )
-
-type Filepath struct {
-	val *string
-}
-
-func (f Filepath) String() string {
-	if f.val != nil {
-		return *f.val
-	}
-	return ""
-}
-
-func (f Filepath) Set(value string) error {
-	if v, err := filepath.Abs(filepath.Clean(value)); err != nil {
-		return err
-	} else {
-		if value == "" {
-			return errors.New("this flag requires a filepath")
-		}
-		*f.val = v
-	}
-	return nil
-}
 
 var reservedKeywords *regexp.Regexp
 
