@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"io/fs"
 	"log"
 	"os"
@@ -80,7 +81,7 @@ func main() {
 
 	for index, path := range sourceIndex {
 		prelimInfo := fmt.Sprintf("[%d/%d]", index+1, len(sourceIndex))
-		log.Println(prelimInfo, "opening", path)
+		log.Println(prelimInfo, "opening:", path)
 		f, err := os.Open(path)
 		if err != nil {
 			log.Panicln(errors.Wrap(err, fmt.Sprintf("error while opening %s", path)))
@@ -109,19 +110,47 @@ func main() {
 			"title":        metadata.Title(),
 			"filetype":     strings.ToLower(string(metadata.FileType())),
 			"filename":     filepath.Base(path),
+			"_index":		strconv.Itoa(index),
 		}
 		scope.Functions = dsl.DefaultFunctions
 
-		var builder strings.Builder
+		var output strings.Builder
 		for _, v := range nodes {
 			s, err := v.Execute(scope)
 			if err != nil {
 				panic(err)
 			}
-			builder.WriteString(clean(s))
+			output.WriteString(s)
+		}
+		if output.String() == "" {
+			panic("no output string")
 		}
 
-		
+		f.Seek(0, 0)
+
+		filename := filepath.Join(config.Destination, output.String())
+		if err := os.MkdirAll(filepath.Dir(filename), os.ModeDir); err != nil {
+			panic(err)
+		}
+
+		destFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0)
+		if err != nil {
+			panic(err)
+		}
+		// TODO:
+		// Allow customization of how alto should handle:
+		// * empty output strings
+		// * already existing files
+
+		written, err := io.Copy(destFile, f)
+		if err != nil {
+			panic(err)
+		}
+
+		// log.Println(prelimInfo, )
+		log.Println(prelimInfo, "finished copying to", filename)
+		log.Println(prelimInfo, fmt.Sprintf("results: wrote %d MBs (%d bytes)", written/1000000, written))
+
 	}
 
 }
