@@ -1,6 +1,7 @@
 package dsl
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -51,7 +52,10 @@ func (t DefaultMust) Execute(args []ASTNode, scope *Scope) (string, error) {
 	for i, v := range args {
 		s, err := v.Execute(scope)
 		if err != nil {
-			return "", errors.Wrapf(err, "must(): field at arg index '%d' returned an error", i)
+			return "", errors.Wrapf(err, "must: field at arg index '%d' returned an error", i)
+		}
+		if s == "" {
+			return "", fmt.Errorf("must: field at arg index '%d' returned an empty response", i)
 		}
 		builder.WriteString(s)
 	}
