@@ -95,6 +95,7 @@ func main() {
 		log.Panicln(errors.Wrap(err, "could not compile nodes for provided path"))
 	}
 
+index_iter:
 	for index, path := range sourceIndex {
 		prelimInfo := fmt.Sprintf("[%d/%d]", index+1, len(sourceIndex))
 		log.Println(prelimInfo, "opening:", path)
@@ -104,30 +105,32 @@ func main() {
 		}
 		metadata, err := tag.ReadFrom(f)
 		if err != nil {
-			log.Panic(errors.Wrap(err, prelimInfo+" could not retrieve metadata"))
+			log.Println(prelimInfo, errors.Wrap(err, "metadata may not be present, error"))
+		} else {
+			discCurrent, discTotal := metadata.Disc()
+			trackCurrent, trackTotal := metadata.Track()
+			scope.Variables = map[string]string{
+				"trackcurrent": strconv.Itoa(trackCurrent),
+				"tracktotal":   strconv.Itoa(trackTotal),
+				"disccurrent":  strconv.Itoa(discCurrent),
+				"disctotal":    strconv.Itoa(discTotal),
+				"year":         strconv.Itoa(metadata.Year()),
+				"comment":      metadata.Comment(),
+				"format":       string(metadata.Format()),
+				"composer":     metadata.Composer(),
+				"genre":        metadata.Genre(),
+				"albumartist":  metadata.AlbumArtist(),
+				"album":        metadata.Album(),
+				"artist":       metadata.Artist(),
+				"title":        metadata.Title(),
+				"filetype":     strings.ToLower(string(metadata.FileType())),
+			}
 		}
+		f.Seek(0, 0)
 
-		discCurrent, discTotal := metadata.Disc()
-		trackCurrent, trackTotal := metadata.Track()
-
-		scope.Variables = map[string]string{
-			"trackcurrent": strconv.Itoa(trackCurrent),
-			"tracktotal":   strconv.Itoa(trackTotal),
-			"disccurrent":  strconv.Itoa(discCurrent),
-			"disctotal":    strconv.Itoa(discTotal),
-			"year":         strconv.Itoa(metadata.Year()),
-			"comment":      metadata.Comment(),
-			"format":       string(metadata.Format()),
-			"composer":     metadata.Composer(),
-			"genre":        metadata.Genre(),
-			"albumartist":  metadata.AlbumArtist(),
-			"album":        metadata.Album(),
-			"artist":       metadata.Artist(),
-			"title":        metadata.Title(),
-			"filetype":     strings.ToLower(string(metadata.FileType())),
-			"filename":     filepath.Base(path),
-			"_index":       strconv.Itoa(index),
-		}
+		scope.Variables["filename"] = filepath.Base(path)
+		scope.Variables["_index"] = strconv.Itoa(index)
+		
 		scope.Functions = dsl.DefaultFunctions
 		for k, v := range AltoFunctions {
 			scope.Functions[k] = v
@@ -137,6 +140,10 @@ func main() {
 		for _, v := range nodes {
 			s, err := v.Execute(scope)
 			if err != nil {
+				if err == errSkip {
+					log.Println(prelimInfo, "<skip> called")
+					continue index_iter
+				}
 				panic(err)
 			}
 			output.WriteString(s)
@@ -145,7 +152,6 @@ func main() {
 			panic("no output string")
 		}
 
-		f.Seek(0, 0)
 
 		filename := filepath.Join(config.Destination, output.String())
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModeDir); err != nil {

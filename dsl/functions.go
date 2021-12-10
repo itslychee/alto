@@ -1,18 +1,37 @@
 package dsl
 
 import (
+	"strconv"
 	"strings"
 
 	"github.com/pkg/errors"
+)
+
+type ConditionalType int
+
+const (
+	EqualTo ConditionalType = iota + 1
+	GreaterThan
+	LessThan
+	NotEqualTo
+	GreaterOrEqualTo
+	LessOrEqualTo
 )
 
 var DefaultFunctions = map[string]ASTFunction{
 	"trim": DefaultTrimSpace{},
 	"must": DefaultMust{},
 	"exit": DefaultExit{},
+	"eq":   DefaultConditional{Type: EqualTo},
+	"neq":  DefaultConditional{Type: NotEqualTo},
+	"gt":   DefaultConditional{Type: GreaterThan},
+	"lt":   DefaultConditional{Type: LessThan},
+	"gte":  DefaultConditional{Type: GreaterOrEqualTo},
+	"lte":  DefaultConditional{Type: LessOrEqualTo},
 }
 
-type DefaultTrimSpace struct {}
+type DefaultTrimSpace struct{}
+
 func (t DefaultTrimSpace) Execute(args []ASTNode, scope *Scope) (string, error) {
 	param, err := args[0].Execute(scope)
 	if err != nil {
@@ -25,7 +44,8 @@ func (t DefaultTrimSpace) MaxParams() int {
 	return 1
 }
 
-type DefaultMust struct {}
+type DefaultMust struct{}
+
 func (t DefaultMust) Execute(args []ASTNode, scope *Scope) (string, error) {
 	var builder strings.Builder
 	for i, v := range args {
@@ -42,7 +62,7 @@ func (t DefaultMust) MaxParams() int {
 	return -1
 }
 
-type DefaultExit struct {}
+type DefaultExit struct{}
 
 func (t DefaultExit) Execute([]ASTNode, *Scope) (string, error) {
 	return "", errors.New("user called exit()")
@@ -50,4 +70,58 @@ func (t DefaultExit) Execute([]ASTNode, *Scope) (string, error) {
 
 func (t DefaultExit) MaxParams() int {
 	return 0
+}
+
+type DefaultConditional struct {
+	Type ConditionalType
+}
+
+func (t DefaultConditional) Execute(nodes []ASTNode, scope *Scope) (string, error) {
+	cond1, err := nodes[0].Execute(scope)
+	if err != nil {
+		return "", err
+	}
+	cond2, err := nodes[1].Execute(scope)
+	if err != nil {
+		return "", err
+	}
+
+	var passed bool
+	switch t.Type {
+	case EqualTo, NotEqualTo:
+		if t.Type == EqualTo {
+			passed = cond1 == cond2
+		} else {
+			passed = cond1 != cond2
+		}
+	default:
+		cnd1, err := strconv.Atoi(cond1)
+		if err != nil {
+			return "", errors.Wrapf(err, "error while converting %s to integer internally", cond1)
+		}
+		cnd2, err := strconv.Atoi(cond2)
+		if err != nil {
+			return "", errors.Wrapf(err, "error while converting %s to integer internally", cond2)
+		}
+
+		switch t.Type {
+		case GreaterThan:
+			passed = cnd1 > cnd2
+		case LessThan:
+			passed = cnd1 < cnd2
+		case GreaterOrEqualTo:
+			passed = cnd1 >= cnd2
+		case LessOrEqualTo:
+			passed = cnd1 <= cnd2
+		}
+	}
+	if passed {
+		return nodes[2].Execute(scope)
+	}
+	return "", nil
+
+}
+
+func (t DefaultConditional) MaxParams() int {
+	return 3
 }

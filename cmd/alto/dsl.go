@@ -1,6 +1,9 @@
 package main
 
 import (
+	"regexp"
+	"runtime"
+
 	"github.com/ItsLychee/alto/dsl"
 )
 
@@ -14,7 +17,19 @@ func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
 	return &dsl.Scope{Parser: parser}, nodes, err
 }
 
+
+
 var AltoFunctions = map[string]dsl.ASTFunction{
-	"fn_clean":  nil,
+	"fn_clean":  func() FnCleanFunction {
+		var reservedKeywords *regexp.Regexp
+		if runtime.GOOS == "windows" {
+			reservedKeywords = regexp.MustCompile(`[\pC"*/:<>?\\|]+`)
+		} else {
+			reservedKeywords = regexp.MustCompile(`[/\x{0}]+`)
+		}
+		return FnCleanFunction{regex: reservedKeywords}
+	}(),
 	"fp_unique": nil,
+	"print": PrintFunction{},
+	"skip": SkipFunc{},
 }
