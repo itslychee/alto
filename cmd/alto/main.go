@@ -113,6 +113,9 @@ func main() {
 			"_index":		strconv.Itoa(index),
 		}
 		scope.Functions = dsl.DefaultFunctions
+		for k,v := range AltoFunctions {
+			scope.Functions[k] = v
+		}
 
 		var output strings.Builder
 		for _, v := range nodes {

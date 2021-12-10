@@ -13,7 +13,7 @@ var DefaultFunctions = map[string]ASTFunction{
 }
 
 type DefaultTrimSpace struct {}
-func (t DefaultTrimSpace) Execute(args []ASTField, scope *Scope) (string, error) {
+func (t DefaultTrimSpace) Execute(args []ASTNode, scope *Scope) (string, error) {
 	param, err := args[0].Execute(scope)
 	if err != nil {
 		return "", err
@@ -26,7 +26,7 @@ func (t DefaultTrimSpace) MaxParams() int {
 }
 
 type DefaultMust struct {}
-func (t DefaultMust) Execute(args []ASTField, scope *Scope) (string, error) {
+func (t DefaultMust) Execute(args []ASTNode, scope *Scope) (string, error) {
 	var builder strings.Builder
 	for i, v := range args {
 		s, err := v.Execute(scope)
@@ -44,7 +44,7 @@ func (t DefaultMust) MaxParams() int {
 
 type DefaultExit struct {}
 
-func (t DefaultExit) Execute([]ASTField, *Scope) (string, error) {
+func (t DefaultExit) Execute([]ASTNode, *Scope) (string, error) {
 	return "", errors.New("user called exit()")
 }
 

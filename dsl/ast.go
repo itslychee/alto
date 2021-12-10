@@ -69,7 +69,7 @@ func (ast ASTVariable) Execute(scope *Scope) (string, error) {
 // cannot be detected at AST compile time.
 type ASTFunctionWrapper struct {
 	Name string
-	Args []ASTField
+	Args []ASTNode
 }
 
 func (ast ASTFunctionWrapper) Execute(scope *Scope) (string, error) {
@@ -84,6 +84,6 @@ func (ast ASTFunctionWrapper) Execute(scope *Scope) (string, error) {
 }
 
 type ASTFunction interface {
-	Execute(args []ASTField, scope *Scope) (string, error)
+	Execute(args []ASTNode, scope *Scope) (string, error)
 	MaxParams() int
 }

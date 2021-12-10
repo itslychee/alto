@@ -13,3 +13,8 @@ func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
 	nodes, err := parser.Parse()
 	return &dsl.Scope{Parser: parser}, nodes, err
 }
+
+var AltoFunctions = map[string]dsl.ASTFunction{
+	"fn_clean":  nil,
+	"fp_unique": nil,
+}

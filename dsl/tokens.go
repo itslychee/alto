@@ -7,8 +7,6 @@ const (
 	StringLiteral
 	LCurlyBrace
 	RCurlyBrace
-	LParen
-	RParen
 	LArrow
 	RArrow
 	Separator

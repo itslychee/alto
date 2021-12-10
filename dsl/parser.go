@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	// "strings"
 )
 
@@ -80,50 +81,49 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 			return ASTVariable{Name: p.PrevToken.Value}, nil
 		}
 		fallthrough
+
+	case StringLiteral:
+		return ASTString{Value: p.CurrentToken.Value}, nil
 	case LArrow:
-		p.arrowDepth++
-		var wrapper ASTFunctionWrapper
-		if err := p.UpdateCursor(); err != nil {
-			return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
-		}
-		if p.CurrentToken.Type != StringLiteral {
-			return nil, fmt.Errorf("invalid type after function group")
-		}
-		wrapper.Name = p.CurrentToken.Value
-		if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != LParen {
-			return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
+		wrapper := ASTFunctionWrapper{}
+		if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != StringLiteral {
+			return nil, fmt.Errorf("function requires an identifier of type stringliteral at pos %d", p.PrevToken.Position)
 		}
 
-		var field ASTField
-		for {
-			switch p.NextToken.Type {
-			case RParen:
-				if len(field.Nodes) > 0 {
-					wrapper.Args = append(wrapper.Args, field)
-				}
-				if err := p.UpdateCursor(); err != nil {
-					return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
-				}
-				if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != RArrow {
-					return nil, fmt.Errorf("unterminated function at pos %d", p.CurrentToken.Position)
-				}
-				return wrapper, nil
-			case Separator:
-				wrapper.Args = append(wrapper.Args, field)
-				field = ASTField{}
-			case RArrow:
-				return nil, fmt.Errorf("unterminated function at pos %d", p.NextToken.Position)
+		fields := strings.Split(p.CurrentToken.Value, " ")
+		wrapper.Name = strings.TrimSpace(fields[0])
+		for _, v := range fields[1:] {
+			if v == "" {
+				continue
 			}
+			field := ASTString{Value: v}
+			wrapper.Args = append(wrapper.Args, field)
+		}
+
+		for {
+			if p.NextToken.Type == RArrow {
+				p.UpdateCursor()
+				return wrapper, nil
+			}
+
 			n, err := p.ParseNode()
 			if err != nil {
 				return nil, err
 			}
-			field.Nodes = append(field.Nodes, n)
-
+			switch node := n.(type) {
+			case ASTString:
+				fields := strings.Split(node.Value, " ")
+				for _, v := range fields {
+					if v == "" {
+						continue
+					}
+					wrapper.Args = append(wrapper.Args, ASTString{v})
+				}
+			default:
+				wrapper.Args = append(wrapper.Args, node)
+			}
 		}
 
-	case StringLiteral, LParen, RParen:
-		return ASTString{Value: p.CurrentToken.Value}, nil
 	case LCurlyBrace:
 		p.groupDepth++
 		var group ASTGroup
