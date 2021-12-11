@@ -93,7 +93,7 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 
 		fields := strings.Split(p.CurrentToken.Value, " ")
 		wrapper.Name = strings.TrimSpace(fields[0])
-		for _, v := range fields[1:] {
+		for _, v := range fields {
 			if v == "" {
 				continue
 			}

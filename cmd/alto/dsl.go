@@ -29,7 +29,4 @@ var AltoFunctions = map[string]dsl.ASTFunction{
 		}
 		return FnCleanFunction{regex: reservedKeywords}
 	}(),
-	"fp_unique": nil,
-	"print": PrintFunction{},
-	"skip": SkipFunc{},
 }

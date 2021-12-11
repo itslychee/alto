@@ -36,7 +36,7 @@ var DefaultFunctions = map[string]ASTFunction{
 type DefaultTrimSpace struct{}
 
 func (t DefaultTrimSpace) Execute(args []ASTNode, scope *Scope) (string, error) {
-	param, err := args[0].Execute(scope)
+	param, err := args[1].Execute(scope)
 	if err != nil {
 		return "", err
 	}
@@ -71,7 +71,7 @@ func (t DefaultMust) MaxParams() int {
 type DefaultExit struct{}
 
 func (t DefaultExit) Execute([]ASTNode, *Scope) (string, error) {
-	return "", errors.New("user called exit()")
+	return "", errors.New("user called exit func")
 }
 
 func (t DefaultExit) MaxParams() int {
@@ -83,11 +83,11 @@ type DefaultConditional struct {
 }
 
 func (t DefaultConditional) Execute(nodes []ASTNode, scope *Scope) (string, error) {
-	cond1, err := nodes[0].Execute(scope)
+	cond1, err := nodes[1].Execute(scope)
 	if err != nil {
 		return "", err
 	}
-	cond2, err := nodes[1].Execute(scope)
+	cond2, err := nodes[2].Execute(scope)
 	if err != nil {
 		return "", err
 	}
@@ -122,7 +122,7 @@ func (t DefaultConditional) Execute(nodes []ASTNode, scope *Scope) (string, erro
 		}
 	}
 	if passed {
-		return nodes[2].Execute(scope)
+		return nodes[3].Execute(scope)
 	}
 	return "", nil
 
@@ -137,7 +137,7 @@ type DefaultSetVariable struct {
 }
 
 func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error) {
-	key, err := args[0].Execute(scope)
+	key, err := args[1].Execute(scope)
 	if err != nil {
 		return "", err
 	}
