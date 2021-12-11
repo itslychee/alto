@@ -39,7 +39,7 @@ func (f FnCleanFunction) Execute(args []dsl.ASTNode, scope *dsl.Scope) (string, 
 		if s == "" {
 			continue
 		}
-		executedNodes = append(executedNodes, s)
+		executedNodes = append(executedNodes, f.regex.ReplaceAllString(s, "-"))
 	}
 	return strings.Join(executedNodes, join), nil
 }
@@ -48,7 +48,7 @@ func (f FnCleanFunction) MaxParams() int {
 	return -1
 }
 
-type PrintFunction struct {}
+type PrintFunction struct{}
 
 func (p PrintFunction) Execute(args []dsl.ASTNode, scope *dsl.Scope) (string, error) {
 	var builder strings.Builder
@@ -67,7 +67,7 @@ func (p PrintFunction) MaxParams() int {
 	return -1
 }
 
-type SkipFunc struct {}
+type SkipFunc struct{}
 
 func (s SkipFunc) Execute([]dsl.ASTNode, *dsl.Scope) (string, error) {
 	return "", errSkip

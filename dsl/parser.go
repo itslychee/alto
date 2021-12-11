@@ -85,9 +85,10 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 	case StringLiteral:
 		return ASTString{Value: p.CurrentToken.Value}, nil
 	case LArrow:
+		p.arrowDepth++
 		wrapper := ASTFunctionWrapper{}
 		if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != StringLiteral {
-			return nil, fmt.Errorf("function requires an identifier of type stringliteral at pos %d", p.PrevToken.Position)
+			return nil, fmt.Errorf("function requires an identifier of type string at pos %d", p.PrevToken.Position)
 		}
 
 		fields := strings.Split(p.CurrentToken.Value, " ")
@@ -103,11 +104,15 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		for {
 			if p.NextToken.Type == RArrow {
 				p.UpdateCursor()
+				p.arrowDepth--
 				return wrapper, nil
 			}
 
 			n, err := p.ParseNode()
 			if err != nil {
+				if errors.Is(err, ErrNoMoreTokens) {
+					return nil, errors.New("unterminated function at EOL")
+				}
 				return nil, err
 			}
 			switch node := n.(type) {

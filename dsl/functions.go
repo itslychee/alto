@@ -29,6 +29,8 @@ var DefaultFunctions = map[string]ASTFunction{
 	"lt":   DefaultConditional{Type: LessThan},
 	"gte":  DefaultConditional{Type: GreaterOrEqualTo},
 	"lte":  DefaultConditional{Type: LessOrEqualTo},
+	"fset": DefaultSetVariable{force: true},
+	"set":  DefaultSetVariable{},
 }
 
 type DefaultTrimSpace struct{}
@@ -128,4 +130,31 @@ func (t DefaultConditional) Execute(nodes []ASTNode, scope *Scope) (string, erro
 
 func (t DefaultConditional) MaxParams() int {
 	return 3
+}
+
+type DefaultSetVariable struct {
+	force bool
+}
+
+func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error) {
+	key, err := args[0].Execute(scope)
+	if err != nil {
+		return "", err
+	}
+
+	if _, ok := scope.Variables[key]; ok && !t.force {
+		return "", fmt.Errorf("variable with key '%s' already exists", key)
+	}
+
+	val, err := args[1].Execute(scope)
+	if err != nil {
+		return "", err
+	}
+
+	scope.Variables[key] = val
+	return "", nil
+}
+
+func (t DefaultSetVariable) MaxParams() int {
+	return 2
 }

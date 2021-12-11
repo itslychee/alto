@@ -94,6 +94,9 @@ func main() {
 	if err != nil {
 		log.Panicln(errors.Wrap(err, "could not compile nodes for provided path"))
 	}
+	if len(nodes) == 0 {
+		log.Panicln("no nodes were sent")
+	}
 
 index_iter:
 	for index, path := range sourceIndex {
@@ -103,6 +106,10 @@ index_iter:
 		if err != nil {
 			log.Panicln(errors.Wrap(err, fmt.Sprintf("error while opening %s", path)))
 		}
+
+		scope.Functions = map[string]dsl.ASTFunction{}
+		scope.Variables = map[string]string{}
+
 		metadata, err := tag.ReadFrom(f)
 		if err != nil {
 			log.Println(prelimInfo, errors.Wrap(err, "metadata may not be present, error"))
@@ -124,13 +131,15 @@ index_iter:
 				"artist":       metadata.Artist(),
 				"title":        metadata.Title(),
 				"filetype":     strings.ToLower(string(metadata.FileType())),
+				"alto_dest":    config.Destination,
+				"alto_source":  config.Source,
 			}
 		}
 		f.Seek(0, 0)
 
 		scope.Variables["filename"] = filepath.Base(path)
 		scope.Variables["_index"] = strconv.Itoa(index)
-		
+
 		scope.Functions = dsl.DefaultFunctions
 		for k, v := range AltoFunctions {
 			scope.Functions[k] = v
@@ -151,7 +160,6 @@ index_iter:
 		if output.String() == "" {
 			panic("no output string")
 		}
-
 
 		filename := filepath.Join(config.Destination, output.String())
 		if err := os.MkdirAll(filepath.Dir(filename), os.ModeDir); err != nil {
