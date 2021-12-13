@@ -36,7 +36,7 @@ type Config struct {
 
 func filepathFunc(dst *string) func(s string) error {
 	return func(s string) error {
-		if v, err := filepath.Abs(filepath.Clean(s)); err != nil {
+		if v, err := filepath.Abs(s); err != nil {
 			return err
 		} else {
 			*dst = v
@@ -52,6 +52,12 @@ func main() {
 	buf, _ := os.ReadFile(filepath.Join(base, "alto", "config.json"))
 	json.Unmarshal(buf, &config)
 	fmt.Println(config)
+	if v, err := filepath.Abs(config.Destination); err == nil {
+		config.Destination = v
+	}
+	if v, err := filepath.Abs(config.Source); err == nil {
+		config.Source = v
+	}
 
 	flag.Func("config", "custom path to configuration file", func(s string) error {
 		buf, err := os.ReadFile(s)
@@ -72,6 +78,7 @@ func main() {
 	if config.Destination == "" || config.Path == "" {
 		log.Panicln("path and/or destination must not be nil")
 	}
+	log.Println(">", config.Destination, config.Source)
 
 	var sourceIndex []string
 	err := filepath.WalkDir(config.Source, func(path string, d fs.DirEntry, err error) error {
@@ -98,6 +105,13 @@ func main() {
 		log.Panicln("no nodes were sent")
 	}
 
+	if err := os.MkdirAll(config.Destination, 0); err != nil {
+		log.Panic(err)
+	}
+
+	if err := os.Chdir(config.Destination); err != nil {
+		log.Panic(err)
+	}
 index_iter:
 	for index, path := range sourceIndex {
 		prelimInfo := fmt.Sprintf("[%d/%d]", index+1, len(sourceIndex))
