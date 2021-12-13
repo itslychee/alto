@@ -112,6 +112,7 @@ func main() {
 	if err := os.Chdir(config.Destination); err != nil {
 		log.Panic(err)
 	}
+
 index_iter:
 	for index, path := range sourceIndex {
 		prelimInfo := fmt.Sprintf("[%d/%d]", index+1, len(sourceIndex))
