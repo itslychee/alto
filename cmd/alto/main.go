@@ -149,7 +149,7 @@ index_iter:
 		for _, v := range nodes {
 			s, err := v.Execute(scope)
 			if err != nil {
-				if err == errSkip {
+				if err == ErrSkip {
 					log.Println(prelimInfo, "<skip> called")
 					continue index_iter
 				}

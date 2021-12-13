@@ -8,6 +8,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+type functionDecl func([]ASTNode, *Scope) (string, error)
+
 type ConditionalType int
 
 const (
@@ -157,4 +159,26 @@ func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error
 
 func (t DefaultSetVariable) MaxParams() int {
 	return 2
+}
+
+// FuncWrapper is NOT the same like ASTFunctionWrapper, this just provides
+// a convienent wrapper for third-party functions
+type FuncWrapper struct {
+	function   functionDecl
+	paramCount int
+}
+
+func (wrapper FuncWrapper) Execute(args []ASTNode, scope *Scope) (string, error) {
+	return wrapper.function(args, scope)
+}
+
+func (wrapper FuncWrapper) MaxParams() int {
+	return wrapper.paramCount
+}
+
+func WrapFunction(paramCount int, function functionDecl) *FuncWrapper {
+	return &FuncWrapper{
+		function:   function,
+		paramCount: paramCount,
+	}
 }

@@ -1,11 +1,29 @@
 package main
 
 import (
-	"regexp"
-	"runtime"
+	"errors"
 
 	"github.com/ItsLychee/alto/dsl"
 )
+
+var (
+	ErrSkip       = errors.New("requested skip")
+	AltoFunctions = map[string]dsl.ASTFunction{
+	    "uniqueFp": dsl.WrapFunction(2, uniqueFilepath),
+		// <uniqueFp {%title%|%filename%} {%result% %index%}>
+
+	}
+)
+
+
+
+func uniqueFilepath(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
+	// <uniqueFp {<fset fp {%artist%/%title%.%filetype%}>|%fp%} {}>
+	
+}
+
+
+
 
 func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
 	toks, err := dsl.NewLexer(s).Lex()
@@ -15,18 +33,4 @@ func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
 	parser := dsl.NewParser(toks)
 	nodes, err := parser.Parse()
 	return &dsl.Scope{Parser: parser}, nodes, err
-}
-
-
-
-var AltoFunctions = map[string]dsl.ASTFunction{
-	"fn_clean":  func() FnCleanFunction {
-		var reservedKeywords *regexp.Regexp
-		if runtime.GOOS == "windows" {
-			reservedKeywords = regexp.MustCompile(`[\pC"*/:<>?\\|]+`)
-		} else {
-			reservedKeywords = regexp.MustCompile(`[/\x{0}]+`)
-		}
-		return FnCleanFunction{regex: reservedKeywords}
-	}(),
 }
