@@ -7,6 +7,6 @@ the executable will not be in the `dsl` directory.
 
 # Feedback
 
-Help with alto can asked in the [/discussions] tab, just be courteous and kind to others. If you
-think you found a bug in the parser, open a [new issue](/issues/new).
+Help with alto can asked in the [github.com/ItsLychee/alto/discussions]() tab, just be courteous and kind to others. If you
+think you found a bug in the parser, open a [new issue](github.com/ItsLychee/alto/issues/new).
 
