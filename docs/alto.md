@@ -45,11 +45,26 @@ stay, so **`<fset ...>`** and **`<set ...>`** calls will not retain outside this
 <uniqueFp {%album%/%title%{ (%index%)}.%filetype%}>
 
 // Output
-Album/Title.flac
+Album/Title.flac      // %index% isn't present
 Album/Title (1).flac  // %index% is present, set to 1
 Album/Title (2).flac  // %index% is present, set to 2
 ...
 ```
 
+### <exists {path}>
 
+**`<exists {path}>`** is a function that will return **`{path}`** if it doesn't exists, otherwise
+it will return an empty string.
 
+#### Example
+
+```golang
+// Path construct
+{<exists {%album%/%title%.%filetype%}>|<skip>}
+
+// Output
+Album/Title.flac // Function <skip> was not called, so this filepath doesn't exist yet
+<skip> // Function <skip> was called
+<skip> // Function <skip> was called
+...
+//

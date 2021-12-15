@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log"
 	"os"
 	"strconv"
 
@@ -12,14 +11,16 @@ import (
 var (
 	ErrSkip       = errors.New("requested skip")
 	AltoFunctions = map[string]dsl.ASTFunction{
-	    "uniqueFp": dsl.WrapFunction(2, uniqueFilepath),
-
+		"uniqueFp": dsl.WrapFunction(2, uniqueFilepath),
+		"exists":   dsl.WrapFunction(1, exists),
 	}
 )
 
 func uniqueFilepath(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
+	// To prevent any unwanted behavior such as overwriting variables,
+	// uniqueFp will just copy this scope.
 	copiedScope := *scope
-	for i := 1;; i++ {
+	for i := 1; ; i++ {
 		s, err := nodes[1].Execute(&copiedScope)
 		if err != nil {
 			return s, err
@@ -29,13 +30,24 @@ func uniqueFilepath(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
 		_, err = os.Lstat(s)
 		if err != nil {
 			if errors.Is(err, os.ErrNotExist) {
-				log.Println(s)
 				return s, nil
 			}
 			return "", err
 		}
 		copiedScope.Variables["index"] = strconv.Itoa(i)
 	}
+}
+
+func exists(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
+	path, err := nodes[1].Execute(scope)
+	if err != nil {
+		return path, err
+	}
+	_, err = os.Stat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return path, err
+	}
+	return "", err
 }
 
 func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
