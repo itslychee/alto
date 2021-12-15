@@ -26,7 +26,7 @@ Along with the default variables provided in the `dsl` package, alto provides th
 * `%alto_source%` — Source directory alto is reading from
 
 Please note that the definitions of these variables are what are *expected*, that doesn't mean you will not
-receive the values you expect. This is why alto exists, to handle arbitrary metadata with relative ease.
+receive the values you expect. This is why alto was created, to handle arbitrary metadata with relative ease.
 
 ## Functions
 
@@ -38,6 +38,18 @@ called **`%index%`** to represent the count of iterations. Another unique thing 
 function is that it has a contained scope, which means that anything updated within **`{path}`** will
 stay, so **`<fset ...>`** and **`<set ...>`** calls will not retain outside this function.
 
+#### Example
+
+```golang
+// Path construct
+<uniqueFp {%album%/%title%{ (%index%)}.%filetype%}>
+
+// Output
+Album/Title.flac
+Album/Title (1).flac  // %index% is present, set to 1
+Album/Title (2).flac  // %index% is present, set to 2
+...
+```
 
 
 
