@@ -38,8 +38,6 @@ func uniqueFilepath(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
 	}
 }
 
-
-
 func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
 	toks, err := dsl.NewLexer(s).Lex()
 	if err != nil {
