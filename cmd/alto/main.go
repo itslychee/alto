@@ -77,10 +77,12 @@ func main() {
 	if config.Destination == "" || config.Path == "" {
 		log.Panicln("path and/or destination must not be nil")
 	}
-	log.Println(">", config.Destination, config.Source)
 
 	var sourceIndex []string
 	err := filepath.WalkDir(config.Source, func(path string, d fs.DirEntry, err error) error {
+		if err != nil {
+			return err
+		}
 		if d.IsDir() {
 			return err
 		}
@@ -91,7 +93,7 @@ func main() {
 				return nil
 			}
 		}
-		return err
+		return nil
 	})
 	if err != nil {
 		log.Panicln(err)
