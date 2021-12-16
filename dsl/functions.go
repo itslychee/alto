@@ -22,9 +22,9 @@ const (
 )
 
 var DefaultFunctions = map[string]ASTFunction{
-	"trim": DefaultTrimSpace{},
-	"must": DefaultMust{},
-	"exit": DefaultExit{},
+	"trim": WrapFunction(1, TrimFunc),
+	"exit": WrapFunction(0, ExitFunc),
+	"must": WrapFunction(-1, MustFunc),
 	"eq":   DefaultConditional{Type: EqualTo},
 	"neq":  DefaultConditional{Type: NotEqualTo},
 	"gt":   DefaultConditional{Type: GreaterThan},
@@ -35,49 +35,31 @@ var DefaultFunctions = map[string]ASTFunction{
 	"set":  DefaultSetVariable{},
 }
 
-type DefaultTrimSpace struct{}
+type DefaultSetVariable struct {
+	force bool
+}
 
-func (t DefaultTrimSpace) Execute(args []ASTNode, scope *Scope) (string, error) {
-	param, err := args[1].Execute(scope)
+func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error) {
+	key, err := args[1].Execute(scope)
 	if err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(param), nil
-}
 
-func (t DefaultTrimSpace) MaxParams() int {
-	return 1
-}
-
-type DefaultMust struct{}
-
-func (t DefaultMust) Execute(args []ASTNode, scope *Scope) (string, error) {
-	var builder strings.Builder
-	for i, v := range args {
-		s, err := v.Execute(scope)
-		if err != nil {
-			return "", errors.Wrapf(err, "must: field at arg index '%d' returned an error", i)
-		}
-		if s == "" {
-			return "", fmt.Errorf("must: field at arg index '%d' returned an empty response", i)
-		}
-		builder.WriteString(s)
+	if _, ok := scope.Variables[key]; ok && !t.force {
+		return "", fmt.Errorf("variable with key '%s' already exists", key)
 	}
-	return builder.String(), nil
+
+	val, err := args[1].Execute(scope)
+	if err != nil {
+		return "", err
+	}
+
+	scope.Variables[key] = val
+	return "", nil
 }
 
-func (t DefaultMust) MaxParams() int {
-	return -1
-}
-
-type DefaultExit struct{}
-
-func (t DefaultExit) Execute([]ASTNode, *Scope) (string, error) {
-	return "", errors.New("user called exit func")
-}
-
-func (t DefaultExit) MaxParams() int {
-	return 0
+func (t DefaultSetVariable) MaxParams() int {
+	return 2
 }
 
 type DefaultConditional struct {
@@ -134,33 +116,6 @@ func (t DefaultConditional) MaxParams() int {
 	return 3
 }
 
-type DefaultSetVariable struct {
-	force bool
-}
-
-func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error) {
-	key, err := args[1].Execute(scope)
-	if err != nil {
-		return "", err
-	}
-
-	if _, ok := scope.Variables[key]; ok && !t.force {
-		return "", fmt.Errorf("variable with key '%s' already exists", key)
-	}
-
-	val, err := args[1].Execute(scope)
-	if err != nil {
-		return "", err
-	}
-
-	scope.Variables[key] = val
-	return "", nil
-}
-
-func (t DefaultSetVariable) MaxParams() int {
-	return 2
-}
-
 // FuncWrapper is NOT the same like ASTFunctionWrapper, this just provides
 // a convienent wrapper for third-party functions
 type FuncWrapper struct {
@@ -174,6 +129,33 @@ func (wrapper FuncWrapper) Execute(args []ASTNode, scope *Scope) (string, error)
 
 func (wrapper FuncWrapper) MaxParams() int {
 	return wrapper.paramCount
+}
+
+func MustFunc(args []ASTNode, scope *Scope) (string, error) {
+	var builder strings.Builder
+	for i, v := range args {
+		s, err := v.Execute(scope)
+		if err != nil {
+			return "", errors.Wrapf(err, "must: field at arg index '%d' returned an error", i)
+		}
+		if s == "" {
+			return "", fmt.Errorf("must: field at arg index '%d' returned an empty response", i)
+		}
+		builder.WriteString(s)
+	}
+	return builder.String(), nil
+}
+
+func TrimFunc(args []ASTNode, scope *Scope) (string, error) {
+	param, err := args[1].Execute(scope)
+	if err != nil {
+		return "", err
+	}
+	return strings.TrimSpace(param), nil
+}
+
+func ExitFunc([]ASTNode, *Scope) (string, error) {
+	return "", errors.New("user called exit func")
 }
 
 func WrapFunction(paramCount int, function functionDecl) *FuncWrapper {
