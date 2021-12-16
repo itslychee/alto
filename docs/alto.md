@@ -38,6 +38,9 @@ called **`%index%`** to represent the count of iterations. Another unique thing 
 function is that it has a contained scope, which means that anything updated within **`{path}`** will
 stay, so **`<fset ...>`** and **`<set ...>`** calls will not retain outside this function.
 
+#### Arguments
+* {path} - A filepath
+
 #### Example
 
 ```golang
@@ -55,6 +58,9 @@ Album/Title (2).flac  // %index% is present, set to 2
 
 **`<exists {path}>`** is a function that will return **`{path}`** if it doesn't exists, otherwise
 it will return an empty string.
+
+#### Arguments
+* {path} - A filepath
 
 #### Example
 
