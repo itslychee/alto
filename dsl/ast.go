@@ -77,8 +77,13 @@ func (ast ASTFunctionWrapper) Execute(scope *Scope) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("function \"%s\" does not exist", ast.Name)
 	}
-	if v.MaxParams() != -1 && len(ast.Args) != v.MaxParams() {
-		return "", fmt.Errorf("too many arguments passed to function '%s'", ast.Name)
+	if v.MaxParams() != -1 {
+		if len(ast.Args) > v.MaxParams() {
+			return "", fmt.Errorf("too many arguments passed to function '%s'", ast.Name)
+		}
+		if len(ast.Args) < v.MaxParams() {
+			return "", fmt.Errorf("too few arguments passed to function '%s'", ast.Name)
+		}
 	}
 	return v.Execute(ast.Args, scope)
 }
