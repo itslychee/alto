@@ -1,25 +1,14 @@
-# alto, a music organizer
+# alto, a music organizer with a DSL
 
-alto is a program built for audio management. It's purpose is to provide the user the means to create
-a path construct to move individual audio files to a select path while being provided with the metadata of the file
-through [variables](#variables).
+Alto is a program that provides the means to organize your music with the
+provided DSL it has. Simply provide a valid string, and let the program do 
+the rest for you. You can find the documentation [here](/docs).
 
-![APNG showcasing alto](.github/assets/showcase.png)
+## Screenshots
 
-# Installing
+*This will be done in the near future*
 
-Simply grab a binary from [Releases](/releases), if it is available. Otherwise go to [building](#Building) to learn
-how to build alto from source.
+## Notice
 
-# Building
-
-You will need [Go](https://golang.org), [Git](https://git-scm.com), and a working internet connection so dependencies
-in [`go.mod`](go.mod) can be installed.
-
-```bash
-$ git clone https://github.com/ItsLychee/alto
-$ cd alto
-$ go build ./cmd/alto
-$ ./alto -help
-# ...
-```
+The project alto is licensed under the MIT License, please see [LICENSE](LICENSE) for
+more information regarding that.
