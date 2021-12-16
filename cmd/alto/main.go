@@ -43,7 +43,6 @@ func filepathFunc(dst *string) func(s string) error {
 		}
 		return nil
 	}
-
 }
 
 func main() {
@@ -146,14 +145,14 @@ index_iter:
 				"artist":       metadata.Artist(),
 				"title":        metadata.Title(),
 				"filetype":     strings.ToLower(string(metadata.FileType())),
-				"alto_dest":    config.Destination,
-				"alto_source":  config.Source,
 			}
 		}
 		f.Seek(0, 0)
 
 		scope.Variables["filename"] = filepath.Base(path)
-		scope.Variables["_index"] = strconv.Itoa(index)
+		scope.Variables["alto_index"] = strconv.Itoa(index)
+		scope.Variables["alto_source"] = config.Source
+		scope.Variables["alto_dest"] = config.Destination
 
 		scope.Functions = dsl.DefaultFunctions
 		for k, v := range AltoFunctions {
