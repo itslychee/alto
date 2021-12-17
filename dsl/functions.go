@@ -25,21 +25,21 @@ var DefaultFunctions = map[string]ASTFunction{
 	"trim": WrapFunction(1, TrimFunc),
 	"exit": WrapFunction(0, ExitFunc),
 	"must": WrapFunction(-1, MustFunc),
-	"eq":   DefaultConditional{Type: EqualTo},
-	"neq":  DefaultConditional{Type: NotEqualTo},
-	"gt":   DefaultConditional{Type: GreaterThan},
-	"lt":   DefaultConditional{Type: LessThan},
-	"gte":  DefaultConditional{Type: GreaterOrEqualTo},
-	"lte":  DefaultConditional{Type: LessOrEqualTo},
-	"fset": DefaultSetVariable{force: true},
-	"set":  DefaultSetVariable{},
+	"eq":   Conditional{Type: EqualTo},
+	"neq":  Conditional{Type: NotEqualTo},
+	"gt":   Conditional{Type: GreaterThan},
+	"lt":   Conditional{Type: LessThan},
+	"gte":  Conditional{Type: GreaterOrEqualTo},
+	"lte":  Conditional{Type: LessOrEqualTo},
+	"fset": SetVariable{force: true},
+	"set":  SetVariable{},
 }
 
-type DefaultSetVariable struct {
+type SetVariable struct {
 	force bool
 }
 
-func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error) {
+func (t SetVariable) Execute(args []ASTNode, scope *Scope) (string, error) {
 	key, err := args[1].Execute(scope)
 	if err != nil {
 		return "", err
@@ -58,15 +58,15 @@ func (t DefaultSetVariable) Execute(args []ASTNode, scope *Scope) (string, error
 	return "", nil
 }
 
-func (t DefaultSetVariable) MaxParams() int {
+func (t SetVariable) MaxParams() int {
 	return 2
 }
 
-type DefaultConditional struct {
+type Conditional struct {
 	Type ConditionalType
 }
 
-func (t DefaultConditional) Execute(nodes []ASTNode, scope *Scope) (string, error) {
+func (t Conditional) Execute(nodes []ASTNode, scope *Scope) (string, error) {
 	cond1, err := nodes[1].Execute(scope)
 	if err != nil {
 		return "", err
@@ -112,7 +112,7 @@ func (t DefaultConditional) Execute(nodes []ASTNode, scope *Scope) (string, erro
 
 }
 
-func (t DefaultConditional) MaxParams() int {
+func (t Conditional) MaxParams() int {
 	return 3
 }
 
