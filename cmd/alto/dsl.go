@@ -2,8 +2,10 @@ package main
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/ItsLychee/alto/dsl"
 )
@@ -13,6 +15,7 @@ var (
 	AltoFunctions = map[string]dsl.ASTFunction{
 		"uniqueFp": dsl.WrapFunction(2, uniqueFilepath),
 		"exists":   dsl.WrapFunction(1, exists),
+		"print":    dsl.WrapFunction(-1, print),
 	}
 )
 
@@ -48,6 +51,19 @@ func exists(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
 		return path, err
 	}
 	return "", err
+}
+
+func print(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
+	builder := strings.Builder{}
+	for _, v := range nodes[1:] {
+		s, err := v.Execute(scope)
+		if err != nil {
+			return "", err
+		}
+		builder.WriteString(s)
+	}
+	fmt.Println(builder.String())
+	return "", nil
 }
 
 func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {

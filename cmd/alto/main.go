@@ -151,7 +151,9 @@ index_iter:
 		}
 		f.Seek(0, 0)
 
-		scope.Variables["filename"] = filepath.Base(path)
+		rawFilename := strings.Split(filepath.Base(path), ".")
+
+		scope.Variables["filename"] = strings.Join(rawFilename[:len(rawFilename)-1], ".")
 		scope.Variables["alto_index"] = strconv.Itoa(index)
 		scope.Variables["alto_source"] = config.Source
 		scope.Variables["alto_dest"] = config.Destination
