@@ -50,7 +50,6 @@ func main() {
 	base, _ := os.UserConfigDir()
 	buf, _ := os.ReadFile(filepath.Join(base, "alto", "config.json"))
 	json.Unmarshal(buf, &config)
-	fmt.Println(config)
 	if v, err := filepath.Abs(config.Destination); err == nil {
 		config.Destination = v
 	}
@@ -98,6 +97,12 @@ func main() {
 	if err != nil {
 		log.Panicln(err)
 	}
+
+	if len(sourceIndex) == 0 {
+		log.Println("error: no files ending with the appropriate extension were indexed")
+		return
+	}
+
 	scope, nodes, err := ParseFormatString(config.Path)
 	if err != nil {
 		log.Panicln(errors.Wrap(err, "could not compile nodes for provided path"))
