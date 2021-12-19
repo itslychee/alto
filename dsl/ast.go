@@ -77,6 +77,8 @@ func (ast ASTFunctionWrapper) Execute(scope *Scope) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("function \"%s\" does not exist", ast.Name)
 	}
+	ast.Args = append([]ASTNode{ASTString{Value: ast.Name}}, ast.Args...)
+
 	if v.MaxParams() != -1 {
 		if len(ast.Args)-1 > v.MaxParams() {
 			return "", fmt.Errorf("too many arguments passed to function '%s'", ast.Name)
