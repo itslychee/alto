@@ -4,6 +4,8 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 
@@ -16,6 +18,15 @@ var (
 		"uniqueFp": dsl.WrapFunction(1, uniqueFilepath),
 		"exists":   dsl.WrapFunction(1, exists),
 		"print":    dsl.WrapFunction(-1, print),
+		"skip": dsl.WrapFunction(0, func([]dsl.ASTNode, *dsl.Scope) (string, error) {
+			return "", ErrSkip
+		}),
+		"clean": func() dsl.ASTFunction {
+			if runtime.GOOS == "windows" {
+				return CleanFunction{regex: regexp.MustCompile(`[\pC"*/:<>?\\|]+`)}
+			}
+			return CleanFunction{regex: regexp.MustCompile(`[/\x{0}]+`)}
+		}(),
 	}
 )
 
@@ -64,6 +75,19 @@ func print(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
 	}
 	fmt.Println(builder.String())
 	return "", nil
+}
+
+type CleanFunction struct {
+	regex *regexp.Regexp
+}
+
+func (f CleanFunction) Execute(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
+	s, err := nodes[1].Execute(scope)
+	return f.regex.ReplaceAllLiteralString(s, "-"), err
+}
+
+func (f CleanFunction) MaxParams() int {
+	return 1
 }
 
 func ParseFormatString(s string) (*dsl.Scope, []dsl.ASTNode, error) {
