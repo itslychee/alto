@@ -13,7 +13,7 @@ import (
 var (
 	ErrSkip       = errors.New("requested skip")
 	AltoFunctions = map[string]dsl.ASTFunction{
-		"uniqueFp": dsl.WrapFunction(2, uniqueFilepath),
+		"uniqueFp": dsl.WrapFunction(1, uniqueFilepath),
 		"exists":   dsl.WrapFunction(1, exists),
 		"print":    dsl.WrapFunction(-1, print),
 	}
@@ -26,7 +26,7 @@ func uniqueFilepath(nodes []dsl.ASTNode, scope *dsl.Scope) (string, error) {
 	for i := 1; ; i++ {
 		s, err := nodes[1].Execute(&copiedScope)
 		if err != nil {
-			return s, err
+			return "", err
 		}
 		// We only care if the actual filepath is available, no need for the
 		// system to see the contents of what a possible symlink is pointing to

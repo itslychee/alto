@@ -127,6 +127,7 @@ index_iter:
 		if err != nil {
 			log.Panicln(errors.Wrap(err, fmt.Sprintf("error while opening %s", path)))
 		}
+		defer f.Close()
 
 		scope.Functions = map[string]dsl.ASTFunction{}
 		scope.Variables = map[string]string{}
@@ -185,7 +186,7 @@ index_iter:
 		}
 
 		filename := filepath.Join(config.Destination, output.String())
-		if err := os.MkdirAll(filepath.Dir(filename), os.ModeDir); err != nil {
+		if err := os.MkdirAll(filepath.Dir(output.String()), os.ModeDir); err != nil {
 			panic(err)
 		}
 
@@ -206,7 +207,7 @@ index_iter:
 		// log.Println(prelimInfo, )
 		log.Println(prelimInfo, "finished copying to", filename)
 		log.Println(prelimInfo, fmt.Sprintf("results: wrote %d MBs (%d bytes)", written/1000000, written))
-
+		f.Close()
 	}
 
 }
