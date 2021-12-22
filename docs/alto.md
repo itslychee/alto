@@ -30,47 +30,42 @@ receive the values you expect. This is why alto was created, to handle arbitrary
 
 ## Functions
 
-### <uniqueFp {path}>
+### \<skip>
+Skip automatically ceases execution and proceeds to the next file
 
-**`<uniqueFp ...>`** is a function that will call **`{path}`** forever until it returns a path
-that doesn't exist. After the first iteration of calling **`{path}`** it will provide a variable 
-called **`%index%`** to represent the count of iterations. Another unique thing about this
-function is that it has a contained scope, which means that anything updated within **`{path}`** will
-stay, so **`<fset ...>`** and **`<set ...>`** calls will not retain outside this function.
+***Returns:*** `ErrSkip`
 
-#### Arguments
-* {path} - A filepath
+### \<print **{arg...}**>
+Print writes to the stderr, mainly useful for debugging path constructs
 
-#### Example
+- {arg...} Varadic sequence of arguments that will be joined together with `""`
 
-```golang
-// Path construct
-<uniqueFp {%album%/%title%{ (%index%)}.%filetype%}>
+***Returns:*** Nothing
 
-// Output
-Album/Title.flac      // %index% isn't present
-Album/Title (1).flac  // %index% is present, set to 1
-Album/Title (2).flac  // %index% is present, set to 2
-...
-```
+### \<clean **{arg}**>
+The clean function is mainly for illegal character sanitization, to help mitigate 
+using arbitrary metadata without any file creation errors.
 
-### <exists {path}>
+- {arg} String that the function will clean
 
-**`<exists {path}>`** is a function that will return **`{path}`** if it doesn't exists, otherwise
-it will return an empty string.
+***Returns:*** {arg} stripped of any illegal filename characters, if any
 
-#### Arguments
-* {path} - A filepath
+### \<exists **{path}**>
+The exists function checks whether or not `{path}` exists
 
-#### Example
+- {path} Filepath
 
-```golang
-// Path construct
-{<exists {%album%/%title%.%filetype%}>|<skip>}
+***Returns:*** Returns `{path}` if it exists, otherwise it returns an empty string
 
-// Output
-Album/Title.flac // Function <skip> was not called, so this filepath doesn't exist yet
-<skip> // Function <skip> was called
-<skip> // Function <skip> was called
-...
-//
+### \<uniqueFp **{path}**>
+
+uniqueFp is a function that returns a non-existent filepath, however there's more to it then what meets
+the eye. It copies the current scope, which is what contains variables and functions, and sets a variable 
+`%index%` to the total times **{path}** has been executed. 
+
+This function is quite unideal for setting variables that retain outside it, but perhaps it may
+be useful for preventing the scope from getting polluted if you require a better contextual state.
+
+- **{path}** A node, typically a group, that will be executed until it returns a filepath that doesn't exist
+
+***Returns:*** A filepath that doesn't exist
