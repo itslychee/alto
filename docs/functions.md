@@ -47,11 +47,26 @@ Set a variable in the scope, if it exists then an error will be returned.
 ***Returns:*** An empty result or an error if the variable exists
 
 
-## \<trim>
-soon
+## \<trim **{value}**>
+
+Trim removes any excess whitespace, the function is just a pipeline to Go's [`strings#TrimSpace`](https://pkg.go.dev/strings#TrimSpace)
+
+- **{value}** String to be trimmed
+
+***Returns:*** A clean result **{value}**, if it does not need to be trimmed then the value will be passed back
 
 ## \<exit>
-soon
 
-## \<must>
-soon
+Exit is a function that signals the program to quit execution
+
+***Returns:*** `ErrExit`
+
+## \<must **{...nodes}**>
+
+The must function requires each node to return a perfect response, otherwise return an error stating which function
+returned an imperfect response
+
+A perfect response is a response not having an error but having a non-empty string
+
+***Returns:*** **{...nodes}** joined by `""`
+
