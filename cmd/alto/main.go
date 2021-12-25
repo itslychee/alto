@@ -1,25 +1,22 @@
 package main
 
 import (
-	"errors"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"io/fs"
-	logging "log"
+	"log"
 	"os"
 	"path/filepath"
-	"regexp"
-	"runtime"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/ItsLychee/alto/dsl"
 	"github.com/dhowden/tag"
+	"github.com/pkg/errors"
 )
 
-var log = logging.New(os.Stderr, "] ", logging.Lmsgprefix|logging.LstdFlags)
 var SupportedFormats = []tag.FileType{
 	tag.MP3,
 	tag.M4A,
@@ -31,220 +28,186 @@ var SupportedFormats = []tag.FileType{
 	tag.DSF,
 }
 
-type Filepath struct {
-	val *string
+type Config struct {
+	Path        string `json:"path"`
+	Destination string `json:"destination"`
+	Source      string `json:"source"`
 }
 
-func (f Filepath) String() string {
-	if f.val != nil {
-		return *f.val
-	}
-	return ""
-}
-
-func (f Filepath) Set(value string) error {
-	if v, err := filepath.Abs(filepath.Clean(value)); err != nil {
-		return err
-	} else {
-		if value == "" {
-			return errors.New("this flag requires a filepath")
+func filepathFunc(dst *string) func(s string) error {
+	return func(s string) error {
+		if v, err := filepath.Abs(s); err != nil {
+			return err
+		} else {
+			*dst = v
 		}
-		*f.val = v
+		return nil
 	}
-	return nil
 }
 
 func main() {
-	var destDirectory string
-	var sourceDirectory string = "."
-	var format, operation string
-	flag.Var(&Filepath{&sourceDirectory}, "source", "directory that alto will read from upon operation")
-	flag.Var(&Filepath{&destDirectory}, "destination", "directory that alto will write to upon operation")
-	flag.StringVar(&operation, "operation", "copy", "file operation to use, rename and copy are the currently available operations")
-	flag.StringVar(&format, "format", "", "format to use to dynamically determine the path upon operation")
+	var config Config
+	base, _ := os.UserConfigDir()
+	buf, _ := os.ReadFile(filepath.Join(base, "alto", "config.json"))
+	json.Unmarshal(buf, &config)
+	if v, err := filepath.Abs(config.Destination); err == nil {
+		config.Destination = v
+	}
+	if v, err := filepath.Abs(config.Source); err == nil {
+		config.Source = v
+	}
+
+	flag.Func("config", "custom path to configuration file", func(s string) error {
+		buf, err := os.ReadFile(s)
+		if err != nil {
+			return err
+		}
+		config = Config{}
+		return json.Unmarshal(buf, &config)
+	})
+	flag.Func("path", "formatting syntax alto should use for files", func(s string) error {
+		config.Path = s
+		return nil
+	})
+	flag.Func("source", "where alto should read and index from", filepathFunc(&config.Source))
+	flag.Func("destination", "where alto should write to", filepathFunc(&config.Destination))
 	flag.Parse()
 
-	if destDirectory == "" {
-		log.Fatalln("-destination must be set to a legible filepath")
+	if config.Destination == "" || config.Path == "" {
+		log.Panicln("path and/or destination must not be nil")
 	}
 
-	if format == "" {
-		log.Fatalln("-format must be set")
-	}
-
-	if operation != "copy" && operation != "rename" {
-		log.Fatalln("invalid -operation value, expected 'copy' or 'rename'")
-	}
-
-	lexer := dsl.NewLexer(format)
-	toks, err := lexer.Lex()
-	if err != nil {
-		log.Fatalln("lexer error:", err)
-	}
-
-	parser := dsl.NewParser(toks)
-	nodes, err := parser.Parse()
-	if err != nil {
-		log.Fatalln("parsing error:", err)
-	}
-
-	var directoryIndex []string
-	err = filepath.WalkDir(sourceDirectory, func(path string, d fs.DirEntry, err error) error {
+	var sourceIndex []string
+	err := filepath.WalkDir(config.Source, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
-			log.Println("warning:", err)
-			return fs.SkipDir
+			return err
 		}
-
 		if d.IsDir() {
-			return nil
+			return err
 		}
-
-		for index, val := range SupportedFormats {
-			if len(SupportedFormats) == index+1 {
+		for _, ext := range SupportedFormats {
+			if strings.HasSuffix(strings.ToLower(path), strings.ToLower(string(ext))) {
+				log.Printf("[%d] indexed: %s", len(sourceIndex)+1, path)
+				sourceIndex = append(sourceIndex, path)
 				return nil
 			}
-			if strings.HasSuffix(strings.ToUpper(path), string(val)) {
-				break
-			}
 		}
-		directoryIndex = append(directoryIndex, path)
-		log.Printf("[%d] indexed file: %s", len(directoryIndex), filepath.ToSlash(path))
 		return nil
 	})
 	if err != nil {
-		panic(err)
+		log.Panicln(err)
 	}
 
-	if len(directoryIndex) == 0 {
-		log.Fatalln("alto found no supported audio files, ensure your -source directory has music that alto can work with")
+	if len(sourceIndex) == 0 {
+		log.Println("error: no files ending with the appropriate extension were indexed")
+		return
 	}
 
-	log.Println("starting organization process...")
-	if err := os.MkdirAll(destDirectory, 0); err != nil {
-		log.Fatalln(err)
+	scope, nodes, err := ParseFormatString(config.Path)
+	if err != nil {
+		log.Panicln(errors.Wrap(err, "could not compile nodes for provided path"))
 	}
-	if err := os.Chdir(destDirectory); err != nil {
-		log.Fatalln(err)
-	}
-
-	var reservedKeywords *regexp.Regexp
-	if runtime.GOOS == "windows" {
-		reservedKeywords = regexp.MustCompile(`[\pC"*/:<>?\\|]+`)
-	} else {
-		reservedKeywords = regexp.MustCompile(`[/\x{0}]+`)
+	if len(nodes) == 0 {
+		log.Panicln("no nodes were sent")
 	}
 
-	for index, fp := range directoryIndex {
-		log.Printf("[%d/%d] traversed on file %s\n", index+1, len(directoryIndex), filepath.ToSlash(fp))
-		sourceFile, err := os.Open(fp)
+	if err := os.MkdirAll(config.Destination, 0); err != nil {
+		log.Panic(err)
+	}
+
+	if err := os.Chdir(config.Destination); err != nil {
+		log.Panic(err)
+	}
+
+index_iter:
+	for index, path := range sourceIndex {
+		prelimInfo := fmt.Sprintf("[%d/%d]", index+1, len(sourceIndex))
+		log.Println(prelimInfo, "opening:", path)
+		f, err := os.Open(path)
 		if err != nil {
-			log.Panicln("error while opening file:", fp, err)
+			log.Panicln(errors.Wrap(err, fmt.Sprintf("error while opening %s", path)))
 		}
-		defer sourceFile.Close()
+		defer f.Close()
 
-		metadata, err := tag.ReadFrom(sourceFile)
+		scope.Functions = map[string]dsl.ASTFunction{}
+		scope.Variables = map[string]string{}
+
+		metadata, err := tag.ReadFrom(f)
 		if err != nil {
-			if err == io.EOF || err == tag.ErrNoTagsFound {
-				log.Println("warning: could not get any metadata from file")
-			} else {
-				log.Panicln("error while identifying metadata:", err)
-			}
-		}
-
-		var scope = dsl.Scope{Variables: make(map[string]string)}
-		if metadata != nil {
-			trackNumber, trackTotal := metadata.Track()
-			discNumber, discTotal := metadata.Disc()
+			log.Println(prelimInfo, errors.Wrap(err, "metadata may not be present, error"))
+		} else {
+			discCurrent, discTotal := metadata.Disc()
+			trackCurrent, trackTotal := metadata.Track()
 			scope.Variables = map[string]string{
-				"title":       strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Title(), "-")),
-				"artist":      strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Artist(), "-")),
-				"album":       strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Album(), "-")),
-				"albumartist": strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.AlbumArtist(), "-")),
-				"genre":       strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Genre(), "-")),
-				"composer":    strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Composer(), "-")),
-				"year":        strconv.Itoa(metadata.Year()),
-
-				"tracknumber": strconv.Itoa(trackNumber),
-				"tracktotal":  strconv.Itoa(trackTotal),
-				"discnumber":  strconv.Itoa(discNumber),
-				"disctotal":   strconv.Itoa(discTotal),
-
-				"comment":  strings.TrimSpace(reservedKeywords.ReplaceAllString(metadata.Comment(), "-")),
-				"format":   strings.TrimSpace(string(metadata.Format())),
-				"filetype": strings.ToLower(string(metadata.FileType())),
+				"trackcurrent": strconv.Itoa(trackCurrent),
+				"tracktotal":   strconv.Itoa(trackTotal),
+				"disccurrent":  strconv.Itoa(discCurrent),
+				"disctotal":    strconv.Itoa(discTotal),
+				"year":         strconv.Itoa(metadata.Year()),
+				"comment":      metadata.Comment(),
+				"format":       string(metadata.Format()),
+				"composer":     metadata.Composer(),
+				"genre":        metadata.Genre(),
+				"albumartist":  metadata.AlbumArtist(),
+				"album":        metadata.Album(),
+				"artist":       metadata.Artist(),
+				"title":        metadata.Title(),
+				"filetype":     strings.ToLower(string(metadata.FileType())),
 			}
 		}
-		scope.Variables["filename"] = filepath.Base(fp)
+		f.Seek(0, 0)
 
-		// Execute AST nodes
+		rawFilename := strings.Split(filepath.Base(path), ".")
+
+		scope.Variables["filename"] = strings.Join(rawFilename[:len(rawFilename)-1], ".")
+		scope.Variables["alto_index"] = strconv.Itoa(index)
+		scope.Variables["alto_source"] = config.Source
+		scope.Variables["alto_dest"] = config.Destination
+
+		scope.Functions = dsl.DefaultFunctions
+		for k, v := range AltoFunctions {
+			scope.Functions[k] = v
+		}
+
 		var output strings.Builder
-		for _, node := range nodes {
-			s, err := node.Execute(scope)
+		for _, v := range nodes {
+			s, err := v.Execute(scope)
 			if err != nil {
-				log.Fatalln("error while trying to evaluate the provided format", err)
+				if err == ErrSkip {
+					log.Println(prelimInfo, "<skip> called")
+					continue index_iter
+				}
+				panic(err)
 			}
 			output.WriteString(s)
 		}
-
-		if output.Len() == 0 {
-			log.Println("alto returned an empty path construct, skipping")
-			continue
+		if output.String() == "" {
+			panic("no output string")
 		}
 
-		filename, err := filepath.Abs(filepath.Clean(output.String()))
+		filename := filepath.Join(config.Destination, output.String())
+		if err := os.MkdirAll(filepath.Dir(output.String()), os.ModeDir); err != nil {
+			panic(err)
+		}
+
+		destFile, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0)
 		if err != nil {
-			log.Panicln("could not get an absolute representation of path")
+			panic(err)
 		}
-		var extension = filepath.Ext(sourceFile.Name())
-		if !strings.HasSuffix(strings.ToLower(filename), extension) {
-			filename = strings.Join([]string{filename, extension}, "")
-		}
+		// TODO:
+		// Allow customization of how alto should handle:
+		// * empty output strings
+		// * already existing files
 
-		// Check for path collisions
-		var tempFilename = filename
-		for counter := 0; ; counter++ {
-			_, err := os.Stat(tempFilename)
-			if errors.Is(err, os.ErrNotExist) {
-				filename = tempFilename
-				break
-			}
-			tempFilename = fmt.Sprintf("%s (%d).%s", filename[:len(filename)-(len(extension)+1)], counter, extension)
-			counter++
+		written, err := io.Copy(destFile, f)
+		if err != nil {
+			panic(err)
 		}
 
-		if err := os.MkdirAll(filepath.Dir(filename), 0); err != nil {
-			log.Panicln("error while creating necessary dirs for dest path", err)
-		}
-
-		switch operation {
-		case "rename":
-			sourceFile.Close()
-			if err := os.Rename(sourceFile.Name(), filename); err != nil {
-				log.Panicf("error while renaming file\n%s\nto %s", filepath.ToSlash(filename), err)
-			}
-			log.Printf("[%d/%d] file relocated to %s\n", index+1, len(directoryIndex), filepath.ToSlash(filename))
-
-		case "copy":
-			sourceFile.Seek(0, 0)
-
-			destFile, err := os.Create(filename)
-			if err != nil {
-				log.Panicln("error while trying to create dest file", err)
-			}
-			defer destFile.Close()
-
-			// TODO: perhaps rewrite the copying logic into something
-			// more optimized to reduce heavy disk I/O.
-			if _, err := io.Copy(destFile, sourceFile); err != nil {
-				log.Println("error while copying file", err)
-			}
-
-			sourceFile.Close()
-			destFile.Close()
-			log.Printf("[%d/%d] copied file to %s\n", index+1, len(directoryIndex), filepath.ToSlash(filename))
-			time.Sleep(50 * time.Millisecond)
-		}
-
+		// log.Println(prelimInfo, )
+		log.Println(prelimInfo, "finished copying to", filename)
+		log.Println(prelimInfo, fmt.Sprintf("results: wrote %d MBs (%d bytes)", written/1000000, written))
+		f.Close()
 	}
 
 }

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	// "strings"
 )
 
@@ -13,43 +14,41 @@ var (
 
 var IdentifierExpr = regexp.MustCompile(`\w+`)
 
-type FunctionDecl func(args []ASTField, scope *Scope) (string, error)
-
 type Scope struct {
 	Variables map[string]string
-	Functions map[string]FunctionDecl
+	Functions map[string]ASTFunction
 	Parser    *Parser
 }
 
 type Parser struct {
-	toks          []*Token
-	position      int
-	currentToken  *Token
-	nextToken     *Token
-	prevToken     *Token
-	arrowDepth    int
-	groupDepth    int
+	toks         []*Token
+	position     int
+	CurrentToken *Token
+	NextToken    *Token
+	PrevToken    *Token
+	arrowDepth   int
+	groupDepth   int
 }
 
 func (p *Parser) UpdateCursor() error {
-	p.prevToken = new(Token)
-	p.nextToken = new(Token)
+	p.PrevToken = new(Token)
+	p.NextToken = new(Token)
 
 	// set prevToken, if feasible
 	if p.position > 0 && len(p.toks) > 0 {
-		p.prevToken = p.toks[p.position-1]
+		p.PrevToken = p.toks[p.position-1]
 	}
 
 	// set currentToken, if feasible
 	if len(p.toks)-1 >= p.position {
-		p.currentToken = p.toks[p.position]
+		p.CurrentToken = p.toks[p.position]
 	} else {
 		return ErrNoMoreTokens
 	}
 
 	// set nextToken, if feasible
 	if len(p.toks) != p.position+1 {
-		p.nextToken = p.toks[p.position+1]
+		p.NextToken = p.toks[p.position+1]
 	}
 
 	p.position++
@@ -62,28 +61,73 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		return nil, err
 	}
 
-	switch p.currentToken.Type {
+	switch p.CurrentToken.Type {
 	case VarNotation:
 		if p.arrowDepth > 0 || p.groupDepth > 0 {
 			err := p.UpdateCursor()
 			if err != nil {
-				return nil, fmt.Errorf("unterminated variable at pos %d", p.prevToken.Position)
+				return nil, fmt.Errorf("unterminated variable at pos %d", p.PrevToken.Position)
 			}
-			if p.nextToken.Type != VarNotation {
-				return nil, fmt.Errorf("unterminated variable at pos %d", p.currentToken.Position)
+			if p.NextToken.Type != VarNotation {
+				return nil, fmt.Errorf("unterminated variable at pos %d", p.CurrentToken.Position)
 			}
 
-			if !IdentifierExpr.Match([]byte(p.currentToken.Value)) {
-				return nil, fmt.Errorf("invalid variable name at pos %d", p.prevToken.Position)
+			if !IdentifierExpr.Match([]byte(p.CurrentToken.Value)) {
+				return nil, fmt.Errorf("invalid variable name at pos %d", p.PrevToken.Position)
 			}
 
 			p.UpdateCursor()
 
-			return ASTVariable{name: p.prevToken.Value}, nil
+			return ASTVariable{Name: p.PrevToken.Value}, nil
 		}
 		fallthrough
+
 	case StringLiteral:
-		return ASTString{Value: p.currentToken.Value}, nil
+		return ASTString{Value: p.CurrentToken.Value}, nil
+	case LArrow:
+		p.arrowDepth++
+		wrapper := ASTFunctionWrapper{}
+		if err := p.UpdateCursor(); err != nil || p.CurrentToken.Type != StringLiteral {
+			return nil, fmt.Errorf("function requires an identifier of type string at pos %d", p.PrevToken.Position)
+		}
+
+		fields := strings.Split(p.CurrentToken.Value, " ")
+		wrapper.Name = strings.TrimSpace(fields[0])
+		for _, v := range fields[1:] {
+			if v == "" {
+				continue
+			}
+			field := ASTString{Value: v}
+			wrapper.Args = append(wrapper.Args, field)
+		}
+
+		for {
+			if p.NextToken.Type == RArrow {
+				p.UpdateCursor()
+				p.arrowDepth--
+				return wrapper, nil
+			}
+
+			n, err := p.ParseNode()
+			if err != nil {
+				if errors.Is(err, ErrNoMoreTokens) {
+					return nil, errors.New("unterminated function at EOL")
+				}
+				return nil, err
+			}
+			switch node := n.(type) {
+			case ASTString:
+				fields := strings.Split(node.Value, " ")
+				for _, v := range fields {
+					if v == "" {
+						continue
+					}
+					wrapper.Args = append(wrapper.Args, ASTString{v})
+				}
+			default:
+				wrapper.Args = append(wrapper.Args, node)
+			}
+		}
 
 	case LCurlyBrace:
 		p.groupDepth++
@@ -91,7 +135,7 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 		var field ASTField
 
 		for {
-			switch p.nextToken.Type {
+			switch p.NextToken.Type {
 			case RCurlyBrace:
 				p.groupDepth--
 				p.UpdateCursor()
@@ -115,7 +159,6 @@ func (p *Parser) ParseNode() (ASTNode, error) {
 			}
 			field.Nodes = append(field.Nodes, n)
 		}
-
 	default:
 		return nil, ErrNoMoreTokens
 	}
