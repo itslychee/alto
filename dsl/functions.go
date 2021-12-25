@@ -21,6 +21,10 @@ const (
 	LessOrEqualTo
 )
 
+var (
+	ErrExit = errors.New("user called exit func")
+)
+
 var DefaultFunctions = map[string]ASTFunction{
 	"trim": WrapFunction(1, TrimFunc),
 	"exit": WrapFunction(0, ExitFunc),
@@ -155,7 +159,7 @@ func TrimFunc(args []ASTNode, scope *Scope) (string, error) {
 }
 
 func ExitFunc([]ASTNode, *Scope) (string, error) {
-	return "", errors.New("user called exit func")
+	return "", ErrExit
 }
 
 func WrapFunction(paramCount int, function functionDecl) *FuncWrapper {
