@@ -19,8 +19,8 @@ builds:
 checksum:
   name_template: checksums.txt
 signs:
-  - artifacts: binary
+  - artifacts: all
 release:
   prerelease: auto
-  name_template: "Release {{ .Version }}"
+  name_template: "v{{ .Version }}"
   mode: append
