@@ -1,0 +1,26 @@
+before:
+  hooks:
+    - go mod tidy
+builds:
+  - main: ./cmd/alto
+    id: alto
+    goos:
+      - windows
+      - linux
+      - darwin
+    goarch:
+      - "386"
+      - amd64
+      - arm64
+      - arm
+    ignore:
+      - goos: darwin
+        goarch: 386
+checksum:
+  name_template: checksums.txt
+signs:
+  - artifacts: binary
+release:
+  prerelease: auto
+  name_template: "Release {{ .Version }}"
+  mode: append
