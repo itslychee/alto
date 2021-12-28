@@ -58,9 +58,9 @@ func (lex *Lexer) ReadToken() (*Token, error) {
 
 func (lex *Lexer) Lex() (toks []*Token, err error) {
 	for {
-		currentToken, er := lex.ReadToken()
-		if er != nil || currentToken == nil {
-			err = er
+		var currentToken *Token
+		currentToken, err = lex.ReadToken()
+		if err != nil || currentToken == nil {
 			return
 		}
 
