@@ -23,4 +23,5 @@ signs:
 release:
   prerelease: auto
   name_template: "v{{ .Version }}"
+  discussion_category_name: v{{ .Version }} Discourse
   mode: append
