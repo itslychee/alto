@@ -4,6 +4,8 @@ before:
 builds:
   - main: ./cmd/alto
     id: alto
+    ldflags:
+      - -X main.Version={{ .Version }}
     goos:
       - windows
       - linux
@@ -25,3 +27,14 @@ release:
   name_template: "v{{ .Version }}"
   discussion_category_name: v{{ .Version }} Discourse
   mode: append
+archives:
+  - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    replacements:
+      386: i386
+      amd64: x86_64
+    format_overrides:
+    - goos: windows
+      format: zip
+    files:
+      - LICENSE
+      - README.md
