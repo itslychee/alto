@@ -4,8 +4,6 @@ before:
 builds:
   - main: ./cmd/alto
     id: alto
-    ldflags:
-      - -X main.Version={{ .Version }}
     goos:
       - windows
       - linux
