@@ -17,13 +17,12 @@ builds:
       - goos: darwin
         goarch: 386
 checksum:
-  name_template: checksums.txt
+  name_template: {{ .ProjectName }}_checksums.txt
 signs:
   - artifacts: all
 release:
   prerelease: auto
   name_template: "v{{ .Version }}"
-  discussion_category_name: v{{ .Version }} Discourse
   mode: append
 archives:
   - name_template: '{{ .ProjectName }}_{{ .Os }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
