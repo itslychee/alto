@@ -1,3 +1,0 @@
-# Alto Documentation
-
-WIP
