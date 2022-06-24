@@ -2,7 +2,7 @@ package dsl
 
 // Scope represents the node's execution scope
 type Scope struct {
-	// Variables are like functions, but passing parameters is forbidden.
+	// Variables are functions, but without parameters.
 	Variables map[string]map[string]ASTNode
 	// Functions serve as a pipeline to Go from alto
 	Functions map[string]map[string]ASTNode
